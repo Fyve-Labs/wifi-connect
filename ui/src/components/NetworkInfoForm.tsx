@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import Button from './Button';
 import type { Network, NetworkInfo } from '../types';
@@ -10,10 +10,23 @@ interface NetworkInfoFormProps {
   onSubmit: (data: NetworkInfo) => void;
 }
 
+const FormContainer = styled.div`
+  margin-top: 2rem;
+`;
+
+const Heading = styled.h2`
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #444;
+`;
+
 const Form = styled.form`
+  max-width: 500px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 `;
 
 const FormGroup = styled.div`
@@ -24,18 +37,64 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
   font-weight: 500;
-`;
-
-const Input = styled.input`
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  color: #555;
 `;
 
 const Select = styled.select`
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 1rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+`;
+
+const InputContainer = styled.div`
+  position: relative;
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 100%;
+`;
+
+const TogglePasswordButton = styled.button`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 1rem;
+`;
+
+const ConnectButton = styled.button`
+  background-color: #a5d8f3;
+  color: #333;
+  font-weight: 600;
+  border: none;
+  padding: 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #8ecbec;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
@@ -47,78 +106,102 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
     identity: '',
     passphrase: '',
   });
-
+  
+  const [showPassword, setShowPassword] = useState(false);
+  
   // Update SSID when networks become available
   useEffect(() => {
     if (availableNetworks.length > 0 && !data.ssid) {
-      setData((prevData: NetworkInfo) => ({ ...prevData, ssid: availableNetworks[0].ssid }));
+      setData((prevData) => ({ ...prevData, ssid: availableNetworks[0].ssid }));
     }
   }, [availableNetworks, data.ssid]);
 
   // Determine if selected network is enterprise
   const isSelectedNetworkEnterprise = useMemo(() => {
     return availableNetworks.some(
-      (network: Network) =>
+      (network) =>
         network.ssid === data.ssid && network.security === 'enterprise',
     );
   }, [availableNetworks, data.ssid]);
 
-  // Form submit handler
-  const handleSubmit = useCallback((e: FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(data);
-  }, [data, onSubmit]);
+  };
 
-  // Input change handler
-  const handleChange = useCallback((field: keyof NetworkInfo) => (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  const handleChange = (field: keyof NetworkInfo) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setData({ ...data, [field]: e.target.value });
-  }, []);
+  };
+
+  const togglePasswordVisibility = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowPassword(!showPassword);
+  };
 
   return (
-    <Form onSubmit={handleSubmit}>
-      <FormGroup>
-        <Label htmlFor="ssid">WiFi Network</Label>
-        <Select
-          id="ssid"
-          value={data.ssid || ''}
-          onChange={handleChange('ssid')}
-          required
-        >
-          {availableNetworks.map((network) => (
-            <option key={network.ssid} value={network.ssid}>
-              {network.ssid} ({network.security}) - Signal: {network.signalLevel}
-            </option>
-          ))}
-        </Select>
-      </FormGroup>
+    <FormContainer>
+      <Heading>
+        Hi! Please choose your WiFi from the list
+      </Heading>
 
-      {isSelectedNetworkEnterprise && (
+      <Form onSubmit={handleSubmit}>
         <FormGroup>
-          <Label htmlFor="identity">Identity (optional)</Label>
-          <Input
-            id="identity"
-            type="text"
-            value={data.identity || ''}
-            onChange={handleChange('identity')}
-          />
+          <Label htmlFor="ssid">SSID*</Label>
+          <Select
+            id="ssid"
+            value={data.ssid || ''}
+            onChange={handleChange('ssid')}
+            required
+            disabled={availableNetworks.length <= 0}
+          >
+            {availableNetworks.map((network) => (
+              <option key={network.ssid} value={network.ssid}>
+                {network.ssid}
+              </option>
+            ))}
+          </Select>
         </FormGroup>
-      )}
 
-      <FormGroup>
-        <Label htmlFor="passphrase">Password</Label>
-        <Input
-          id="passphrase"
-          type="password"
-          value={data.passphrase || ''}
-          onChange={handleChange('passphrase')}
-        />
-      </FormGroup>
+        {isSelectedNetworkEnterprise && (
+          <FormGroup>
+            <Label htmlFor="identity">Identity</Label>
+            <Input
+              id="identity"
+              type="text"
+              value={data.identity || ''}
+              onChange={handleChange('identity')}
+            />
+          </FormGroup>
+        )}
 
-      <Button type="submit" variant="primary" fullWidth>
-        Connect
-      </Button>
-    </Form>
+        <FormGroup>
+          <Label htmlFor="passphrase">Passphrase</Label>
+          <InputContainer>
+            <Input
+              id="passphrase"
+              type={showPassword ? "text" : "password"}
+              value={data.passphrase || ''}
+              onChange={handleChange('passphrase')}
+            />
+            <TogglePasswordButton 
+              type="button"
+              onClick={togglePasswordVisibility}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "👁️" : "👁️‍🗨️"}
+            </TogglePasswordButton>
+          </InputContainer>
+        </FormGroup>
+
+        <ConnectButton
+          type="submit"
+          disabled={availableNetworks.length <= 0}
+        >
+          Connect
+        </ConnectButton>
+      </Form>
+    </FormContainer>
   );
 }; 
