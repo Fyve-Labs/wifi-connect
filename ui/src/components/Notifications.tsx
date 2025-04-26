@@ -1,40 +1,59 @@
-import * as React from 'react';
-import { Txt, Alert } from 'rendition';
+'use client';
 
-export const Notifications = ({
-	hasAvailableNetworks,
-	attemptedConnect,
-	error,
-}: {
-	hasAvailableNetworks: boolean;
-	attemptedConnect: boolean;
-	error: string;
+import React from 'react';
+import styled from 'styled-components';
+
+interface NotificationsProps {
+  attemptedConnect: boolean;
+  hasAvailableNetworks: boolean;
+  error: string;
+}
+
+const NotificationContainer = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+type AlertVariant = 'success' | 'error' | 'info';
+
+const Alert = styled.div<{ $variant: AlertVariant }>`
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  color: ${({ $variant }: { $variant: AlertVariant }) => 
+    $variant === 'success' ? '#155724' : 
+    $variant === 'error' ? '#721c24' : '#0c5460'};
+  background-color: ${({ $variant }: { $variant: AlertVariant }) => 
+    $variant === 'success' ? '#d4edda' : 
+    $variant === 'error' ? '#f8d7da' : '#d1ecf1'};
+  border: 1px solid ${({ $variant }: { $variant: AlertVariant }) => 
+    $variant === 'success' ? '#c3e6cb' : 
+    $variant === 'error' ? '#f5c6cb' : '#bee5eb'};
+`;
+
+export const Notifications: React.FC<NotificationsProps> = ({
+  attemptedConnect,
+  hasAvailableNetworks,
+  error,
 }) => {
-	return (
-		<>
-			{attemptedConnect && (
-				<Alert m={2} info>
-					<Txt.span>Applying changes... </Txt.span>
-					<Txt.span>
-						Your device will soon be online. If connection is unsuccessful, the
-						Access Point will be back up in a few minutes, and reloading this
-						page will allow you to try again.
-					</Txt.span>
-				</Alert>
-			)}
-			{!hasAvailableNetworks && (
-				<Alert m={2} warning>
-					<Txt.span>No wifi networks available.&nbsp;</Txt.span>
-					<Txt.span>
-						Please ensure there is a network within range and reboot the device.
-					</Txt.span>
-				</Alert>
-			)}
-			{!!error && (
-				<Alert m={2} danger>
-					<Txt.span>{error}</Txt.span>
-				</Alert>
-			)}
-		</>
-	);
-};
+  return (
+    <NotificationContainer>
+      {error && (
+        <Alert $variant="error" role="alert">
+          {error}
+        </Alert>
+      )}
+
+      {attemptedConnect && !error && (
+        <Alert $variant="success" role="alert">
+          Connecting to WiFi network...
+        </Alert>
+      )}
+
+      {!hasAvailableNetworks && !error && (
+        <Alert $variant="info" role="alert">
+          No WiFi networks found.
+        </Alert>
+      )}
+    </NotificationContainer>
+  );
+}; 
