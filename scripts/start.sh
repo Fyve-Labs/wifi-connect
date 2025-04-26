@@ -8,6 +8,11 @@ export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
 # If this is your case, you can wait for a while and then check for the connection.
 # sleep 15
 
+# Setup network manager across different environments
+if [ -f ./start-network.sh ]; then
+    chmod +x ./start-network.sh
+fi
+
 # Choose a condition for running WiFi Connect according to your use case:
 
 # 1. Is there a default gateway?
@@ -26,7 +31,12 @@ if [ $? -eq 0 ]; then
     printf 'Skipping WiFi Connect\n'
 else
     printf 'Starting WiFi Connect\n'
-    ./wifi-connect
+    # Use the universal start-network script if available
+    if [ -f ./start-network.sh ]; then
+        ./start-network.sh
+    else
+        ./wifi-connect
+    fi
 fi
 
 # Start your application here.
