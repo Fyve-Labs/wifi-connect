@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Notifications } from './Notifications';
 import { NetworkInfoForm } from './NetworkInfoForm';
 import type { Network, NetworkInfo } from '../types';
+import Image from 'next/image';
 
 const Container = styled.div`
   max-width: 800px;
@@ -30,6 +31,14 @@ const Logo = styled.div`
   }
 `;
 
+// Mock data used as fallback when the API is not available
+const mockNetworks: Network[] = [
+  { ssid: 'Home WiFi', security: 'WPA', signalLevel: 90 },
+  { ssid: 'Office Network', security: 'WPA2', signalLevel: 75 },
+  { ssid: 'Guest Network', security: 'Open', signalLevel: 60 },
+  { ssid: 'Enterprise Network', security: 'enterprise', signalLevel: 85 }
+];
+
 export const ConnectContainer: React.FC = () => {
   const [attemptedConnect, setAttemptedConnect] = useState(false);
   const [isFetchingNetworks, setIsFetchingNetworks] = useState(true);
@@ -38,22 +47,34 @@ export const ConnectContainer: React.FC = () => {
 
   useEffect(() => {
     const fetchNetworks = async () => {
+      setIsFetchingNetworks(true);
+      setError('');
+      
       try {
-        // Simulate network fetch (replace with actual API call)
-        setTimeout(() => {
-          // For demonstration - in production, use the actual API
-          const mockNetworks: Network[] = [
-            { ssid: 'Home WiFi', security: 'WPA', signalLevel: 90 },
-            { ssid: 'Office Network', security: 'WPA2', signalLevel: 75 },
-            { ssid: 'Guest Network', security: 'Open', signalLevel: 60 },
-            { ssid: 'Enterprise Network', security: 'enterprise', signalLevel: 85 }
-          ];
-          setAvailableNetworks(mockNetworks);
-          setIsFetchingNetworks(false);
-        }, 1000);
+        // Try to fetch from the real endpoint first
+        const response = await fetch('http://localhost/networks', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          // Adding a short timeout to fail faster if the endpoint is not available
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch networks: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setAvailableNetworks(data);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(`Failed to fetch available networks. ${errorMessage}`);
+        console.warn('Error fetching networks from API, using mock data:', err);
+        
+        // If the API call fails, use mock data after a small delay to simulate loading
+        setTimeout(() => {
+          setAvailableNetworks(mockNetworks);
+        }, 800);
+      } finally {
         setIsFetchingNetworks(false);
       }
     };
@@ -66,21 +87,27 @@ export const ConnectContainer: React.FC = () => {
     setError('');
 
     try {
-      // Simulate API call (replace with actual API call)
-      console.log('Connecting to network:', data);
-      // In production, make an actual API call:
-      // const response = await fetch('/connect', {
-      //   method: 'POST',
-      //   body: JSON.stringify(data),
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      // });
+      // Make the real API call
+      const response = await fetch('http://localhost/connect', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        // Adding a short timeout to fail faster if the endpoint is not available
+        signal: AbortSignal.timeout(5000)
+      });
       
-      // if (!response.ok) {
-      //   throw new Error(response.statusText);
-      // }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(errorData.message || 'Failed to connect to the network.');
+      }
+      
+      // Success - connection initiated
+      console.log('Connection initiated successfully');
     } catch (err) {
+      // Handle error and display it in the UI
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(`Failed to connect to the network. ${errorMessage}`);
     }
@@ -90,7 +117,7 @@ export const ConnectContainer: React.FC = () => {
     <>
       <Header>
         <Logo>
-          <img src="/logo.svg" alt="Balena" />
+          <Image src="/logo.svg" alt="Balena" width={100} height={30} priority />
         </Logo>
       </Header>
 

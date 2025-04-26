@@ -1,4 +1,3 @@
-import React from 'react';
 import * as CSS from 'csstype';
 
 declare module 'react' {

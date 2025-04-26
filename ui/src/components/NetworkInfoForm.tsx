@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import Button from './Button';
 import type { Network, NetworkInfo } from '../types';
 
 interface NetworkInfoFormProps {

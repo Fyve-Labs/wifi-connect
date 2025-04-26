@@ -1,6 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
 import { ThemeProvider } from 'styled-components';
 import theme from '../styles/theme';
 import StyledComponentsRegistry from '../lib/registry';
