@@ -99,7 +99,7 @@ macro_rules! get_request_state {
     };
 }
 
-fn exit_with_error<E>(state: &RequestSharedState, e: E, e_kind: ErrorKind) -> IronResult<Response>
+fn exit_with_error<E>(state: &RequestSharedState, _e: E, e_kind: ErrorKind) -> IronResult<Response>
 where
     E: ::std::error::Error + Send + 'static,
 {
@@ -159,6 +159,8 @@ pub fn start_server(
     // API endpoints
     router.get("/networks", networks, "networks");
     router.post("/connect", connect, "connect");
+    router.post("/refresh", refresh, "refresh");
+    router.post("/heartbeat", heartbeat, "heartbeat");
 
     // Next.js static export structure is different - we need to mount all static assets correctly
     let mut assets = Mount::new();
@@ -267,4 +269,43 @@ fn connect(req: &mut Request) -> IronResult<Response> {
     } else {
         Ok(Response::with(status::Ok))
     }
+}
+
+fn refresh(req: &mut Request) -> IronResult<Response> {
+    info!("Refresh networks request received");
+
+    let request_state = get_request_state!(req);
+
+    if let Err(e) = request_state.network_tx.send(NetworkCommand::Refresh) {
+        return exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandActivate);
+    }
+
+    let networks = match request_state.server_rx.recv() {
+        Ok(result) => match result {
+            NetworkCommandResponse::Networks(networks) => networks,
+        },
+        Err(e) => return exit_with_error(&request_state, e, ErrorKind::RecvAccessPointSSIDs),
+    };
+
+    let access_points_json = match serde_json::to_string(&networks) {
+        Ok(json) => json,
+        Err(e) => return exit_with_error(&request_state, e, ErrorKind::SerializeAccessPointSSIDs),
+    };
+
+    Ok(Response::with((status::Ok, access_points_json)))
+}
+
+fn heartbeat(req: &mut Request) -> IronResult<Response> {
+    debug!("Heartbeat received from frontend");
+    
+    let request_state = get_request_state!(req);
+    
+    // Send a dummy RetryLastConnection command to trigger activity update
+    // The actual reconnection will be suppressed since frontend is active
+    if let Err(e) = request_state.network_tx.send(NetworkCommand::RetryLastConnection) {
+        error!("Sending heartbeat signal failed: {}", e);
+        // Don't exit on heartbeat failure, just log the error
+    }
+    
+    Ok(Response::with((status::Ok, "{\"status\":\"ok\"}")))
 }

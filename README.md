@@ -47,6 +47,10 @@ The captive portal provides the option to select a WiFi SSID from a list with de
 
 When the network credentials have been entered, WiFi Connect will disable the access point and try to connect to the network. If the connection fails, it will enable the access point for another attempt. If it succeeds, the configuration will be saved by NetworkManager.
 
+### 6. Reconnection: Device Automatically Retries Connection
+
+WiFi Connect will remember the last successful WiFi credentials and attempt to reconnect automatically if the connection is lost. This happens every 5 minutes by default, but can be configured using the `RECONNECT_INTERVAL` environment variable (in seconds).
+
 ---
 
 For a complete list of command line arguments and environment variables check out our [command line arguments](./docs/command-line-arguments.md) guide.
@@ -112,7 +116,7 @@ Dongle                                     | Chip
 [ModMyPi](http://bit.ly/1gY3IHF)           | Ralink RT3070
 [ThePiHut](http://bit.ly/1LfkCgZ)          | Ralink RT5370
 
-It has also been successfully tested with the onboard WiFi on a Raspberry Pi 3.
+It has also been successfully tested with the onboard WiFi on a Raspberry Pi 3 and a Raspberry Pi 5.
 
 Given these results, it is probable that most dongles with *Atheros* or *Ralink* chipsets will work.
 
@@ -125,6 +129,40 @@ The following dongles are known **not** to work (as the driver is not friendly w
 Dongles with similar chipsets will probably not work.
 
 WiFi Connect is expected to work with all balena.io [supported boards](https://www.balena.io/docs/reference/hardware/devices/) as long as they have the [compatible dongles](https://www.balena.io/docs/reference/hardware/wifi-dongles/).
+
+***
+
+Configuration Options
+--------------------
+
+### Environment Variables
+
+WiFi Connect can be configured using the following environment variables:
+
+Variable | Description | Default
+---------|-------------|--------
+`PORTAL_SSID` | Name of the access point created | `WiFi Connect`
+`PORTAL_PASSPHRASE` | WPA2 Passphrase for the access point | No passphrase (open)
+`PORTAL_INTERFACE` | Interface to create access point on | First WiFi interface found
+`PORTAL_GATEWAY` | Gateway IP for the access point | `192.168.42.1`
+`PORTAL_DHCP_RANGE` | DHCP range for the access point | `192.168.42.2,192.168.42.254`
+`PORTAL_LISTENING_PORT` | Port for captive portal web server | `80`
+`ACTIVITY_TIMEOUT` | Exit if no activity after this time (seconds) | `0` (disabled)
+`RECONNECT_INTERVAL` | Time between reconnection attempts (seconds) | `300` (5 minutes)
+
+### Recent Features
+
+WiFi Connect has recently been updated with the following improvements:
+
+- **Simplified Dockerfile**: Simplified [Dockerfile](Dockerfile) that is generic compile using modern docker images.  The prior platform specific [Dockerfile template](Dockerfile.template) is still available in this repo.
+- **Modern UI**: Updated frontend using Next.js
+- **Rust 2021 Edition Support**: Updated codebase to use the latest Rust features
+- **Auto-Reconnect**: Remembers last successful connection and tries to reconnect automatically
+- **Customizable Reconnection Interval**: Configure with `RECONNECT_INTERVAL` environment variable
+- **Customizable Access Point Name**: Set with `PORTAL_SSID` environment variable
+- **Network Refresh**: Manually refresh the list of available networks
+- **Frontend Activity Detection**: Smart reconnection attempts only when frontend is idle
+- **Cursor Inclusion**: Added [cursor rules](.cursor/rules/) for easier AI-based code improvements and feature additions.
 
 ***
 

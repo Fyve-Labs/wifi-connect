@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Notifications } from './Notifications';
 import { NetworkInfoForm } from './NetworkInfoForm';
@@ -32,59 +32,129 @@ const Logo = styled.div`
 `;
 
 // Mock data used as fallback when the API is not available
-const mockNetworks: Network[] = [
-  { ssid: 'Home WiFi', security: 'WPA', signalLevel: 90 },
-  { ssid: 'Office Network', security: 'WPA2', signalLevel: 75 },
-  { ssid: 'Guest Network', security: 'Open', signalLevel: 60 },
-  { ssid: 'Enterprise Network', security: 'enterprise', signalLevel: 85 }
-];
+// const mockNetworks: Network[] = [
+//   { ssid: 'Home WiFi', security: 'WPA', signalLevel: 90 },
+//   { ssid: 'Office Network', security: 'WPA2', signalLevel: 75 },
+//   { ssid: 'Guest Network', security: 'Open', signalLevel: 60 },
+//   { ssid: 'Enterprise Network', security: 'enterprise', signalLevel: 85 }
+// ];
 
 export const ConnectContainer: React.FC = () => {
   const [attemptedConnect, setAttemptedConnect] = useState(false);
   const [isFetchingNetworks, setIsFetchingNetworks] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [availableNetworks, setAvailableNetworks] = useState<Network[]>([]);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const fetchNetworks = async () => {
-      setIsFetchingNetworks(true);
-      setError('');
-      
-      try {
-        // Use relative path that will be handled by the backend
-        const response = await fetch('/networks', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          },
-          // Adding a short timeout to fail faster if the endpoint is not available
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch networks: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setAvailableNetworks(data);
-      } catch (err) {
-        console.warn('Error fetching networks from API, using mock data:', err);
-        
-        // If the API call fails, use mock data after a small delay to simulate loading
-        setTimeout(() => {
-          setAvailableNetworks(mockNetworks);
-        }, 800);
-      } finally {
-        setIsFetchingNetworks(false);
+    fetchNetworks();
+    
+    // Start the heartbeat interval when component mounts
+    startHeartbeat();
+    
+    // Clean up the interval when component unmounts
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
     };
-
-    fetchNetworks();
   }, []);
+  
+  const startHeartbeat = () => {
+    // Send heartbeat every 60 seconds to indicate frontend is active
+    heartbeatIntervalRef.current = setInterval(() => {
+      sendHeartbeat();
+    }, 60000); // 60 seconds
+  };
+  
+  const sendHeartbeat = async () => {
+    try {
+      await fetch('/heartbeat', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(3000)  // Short timeout for heartbeat
+      });
+      // No need to process response, just sending activity signal
+    } catch (err) {
+      // Silent fail on heartbeat errors, just log to console
+      console.warn('Failed to send heartbeat:', err);
+    }
+  };
+
+  const fetchNetworks = async () => {
+    setIsFetchingNetworks(true);
+    setError('');
+    
+    try {
+      // Use relative path that will be handled by the backend
+      const response = await fetch('/networks', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        // Adding a short timeout to fail faster if the endpoint is not available
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch networks: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setAvailableNetworks(data);
+    } catch (err) {
+      console.warn('Error fetching networks from API, using mock data:', err);
+      
+      // If the API call fails, use mock data after a small delay to simulate loading
+      // setTimeout(() => {
+      //   setAvailableNetworks(mockNetworks);
+      // }, 800);
+    } finally {
+      setIsFetchingNetworks(false);
+    }
+  };
+
+  const refreshNetworks = async () => {
+    setIsRefreshing(true);
+    setError('');
+    
+    // Send a heartbeat first to ensure backend knows we're active
+    await sendHeartbeat();
+    
+    try {
+      // Call the refresh API endpoint
+      const response = await fetch('/refresh', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to refresh networks: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setAvailableNetworks(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Error refreshing networks:', errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const onConnect = async (data: NetworkInfo) => {
     setAttemptedConnect(true);
     setError('');
+    
+    // Send a heartbeat first to ensure backend knows we're active
+    await sendHeartbeat();
 
     try {
       // Use relative path that will be handled by the backend
@@ -132,6 +202,8 @@ export const ConnectContainer: React.FC = () => {
         <NetworkInfoForm
           availableNetworks={availableNetworks}
           onSubmit={onConnect}
+          onRefresh={refreshNetworks}
+          isRefreshing={isRefreshing}
         />
       </Container>
     </>

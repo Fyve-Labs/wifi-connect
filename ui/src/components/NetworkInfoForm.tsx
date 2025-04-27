@@ -7,6 +7,8 @@ import type { Network, NetworkInfo } from '../types';
 interface NetworkInfoFormProps {
   availableNetworks: Network[];
   onSubmit: (data: NetworkInfo) => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 const FormContainer = styled.div`
@@ -96,9 +98,42 @@ const ConnectButton = styled.button`
   }
 `;
 
+const RefreshButton = styled.button`
+  background-color: #f0f0f0;
+  color: #333;
+  font-weight: 600;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background-color: #e0e0e0;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const ButtonsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
 export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
   availableNetworks,
   onSubmit,
+  onRefresh,
+  isRefreshing,
 }: NetworkInfoFormProps) => {
   const [data, setData] = useState<NetworkInfo>({
     ssid: availableNetworks.length > 0 ? availableNetworks[0].ssid : '',
@@ -194,12 +229,22 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
           </InputContainer>
         </FormGroup>
 
-        <ConnectButton
-          type="submit"
-          disabled={availableNetworks.length <= 0}
-        >
-          Connect
-        </ConnectButton>
+        <ButtonsContainer>
+          <ConnectButton
+            type="submit"
+            disabled={availableNetworks.length <= 0}
+          >
+            Connect
+          </ConnectButton>
+          
+          <RefreshButton
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh Networks"}
+          </RefreshButton>
+        </ButtonsContainer>
       </Form>
     </FormContainer>
   );

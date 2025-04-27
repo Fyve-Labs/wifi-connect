@@ -4,6 +4,7 @@ use std::process;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
+use std::env;
 
 use network_manager::{
     AccessPoint, AccessPointCredentials, Connection, Connectivity, Device,
@@ -20,6 +21,8 @@ pub enum NetworkCommand {
     Activate,
     Timeout,
     Exit,
+    Refresh,
+    RetryLastConnection,
     Connect {
         ssid: String,
         identity: String,
@@ -37,6 +40,13 @@ pub enum NetworkCommandResponse {
     Networks(Vec<Network>),
 }
 
+#[derive(Clone)]
+struct LastConnection {
+    ssid: String,
+    identity: String,
+    passphrase: String,
+}
+
 struct NetworkCommandHandler {
     manager: NetworkManager,
     device: Device,
@@ -47,6 +57,9 @@ struct NetworkCommandHandler {
     server_tx: Sender<NetworkCommandResponse>,
     network_rx: Receiver<NetworkCommand>,
     activated: bool,
+    last_connection: Option<LastConnection>,
+    frontend_active: bool,
+    last_activity_time: std::time::Instant,
 }
 
 impl NetworkCommandHandler {
@@ -70,10 +83,19 @@ impl NetworkCommandHandler {
 
         Self::spawn_server(config, exit_tx, server_rx, network_tx.clone());
 
-        Self::spawn_activity_timeout(config, network_tx);
+        Self::spawn_activity_timeout(config, network_tx.clone());
+        
+        // Add auto-refresh capability
+        Self::spawn_auto_refresh(network_tx.clone());
+        
+        // Add reconnect capability
+        Self::spawn_reconnect_timer(network_tx);
 
         let config = config.clone();
         let activated = false;
+        let last_connection = None;
+        let frontend_active = false;
+        let last_activity_time = std::time::Instant::now();
 
         Ok(NetworkCommandHandler {
             manager,
@@ -85,6 +107,9 @@ impl NetworkCommandHandler {
             server_tx,
             network_rx,
             activated,
+            last_connection,
+            frontend_active,
+            last_activity_time,
         })
     }
 
@@ -130,6 +155,75 @@ impl NetworkCommandHandler {
         });
     }
 
+    fn spawn_auto_refresh(network_tx: Sender<NetworkCommand>) {
+        // Read refresh interval from environment variable or use default (300 seconds)
+        let refresh_interval = match env::var("RECONNECT_INTERVAL") {
+            Ok(val) => match val.parse::<u64>() {
+                Ok(seconds) => seconds,
+                Err(_) => 300
+            },
+            Err(_) => 300 // Default to 5 minutes (300 seconds)
+        };
+        
+        thread::spawn(move || {
+            loop {
+                // Wait for the refresh interval
+                thread::sleep(Duration::from_secs(refresh_interval));
+
+                debug!("Auto-refresh timer triggered after {} seconds", refresh_interval);
+                
+                // Send the refresh command
+                if let Err(err) = network_tx.send(NetworkCommand::Refresh) {
+                    error!(
+                        "Sending NetworkCommand::Refresh failed: {}",
+                        err.to_string()
+                    );
+                    break; // Break the loop if sending fails
+                }
+                
+                info!("Auto-refreshing WiFi networks list");
+            }
+        });
+    }
+
+    fn spawn_reconnect_timer(network_tx: Sender<NetworkCommand>) {
+        // Read reconnect interval from environment variable or use default (300 seconds)
+        let reconnect_interval = match env::var("RECONNECT_INTERVAL") {
+            Ok(val) => match val.parse::<u64>() {
+                Ok(seconds) => {
+                    info!("Using RECONNECT_INTERVAL from environment: {} seconds", seconds);
+                    seconds
+                },
+                Err(_) => {
+                    warn!("Invalid RECONNECT_INTERVAL value, using default of 300 seconds");
+                    300
+                }
+            },
+            Err(_) => {
+                info!("RECONNECT_INTERVAL not set, using default of 300 seconds");
+                300 // Default to 5 minutes (300 seconds)
+            }
+        };
+        
+        thread::spawn(move || {
+            loop {
+                // Wait for the reconnect interval
+                thread::sleep(Duration::from_secs(reconnect_interval));
+
+                debug!("Reconnect timer triggered after {} seconds", reconnect_interval);
+                
+                // Send the reconnect command
+                if let Err(err) = network_tx.send(NetworkCommand::RetryLastConnection) {
+                    error!(
+                        "Sending NetworkCommand::RetryLastConnection failed: {}",
+                        err.to_string()
+                    );
+                    break; // Break the loop if sending fails
+                }
+            }
+        });
+    }
+
     fn spawn_trap_exit_signals(exit_tx: &Sender<ExitResult>, network_tx: Sender<NetworkCommand>) {
         let exit_tx_trap = exit_tx.clone();
 
@@ -157,6 +251,36 @@ impl NetworkCommandHandler {
             match command {
                 NetworkCommand::Activate => {
                     self.activate()?;
+                    self.update_activity();
+                }
+                NetworkCommand::Refresh => {
+                    self.refresh()?;
+                    self.update_activity();
+                }
+                NetworkCommand::RetryLastConnection => {
+                    // Always update activity status when this command is received
+                    // This could be a heartbeat from the frontend
+                    self.update_activity();
+                    
+                    // Check if we should attempt reconnection
+                    let is_idle = self.check_idle_timeout();
+                    if is_idle {
+                        self.frontend_active = false;
+                        
+                        if let Some(last_conn) = &self.last_connection {
+                            // Clone the connection data to avoid borrow checker issues
+                            let ssid = last_conn.ssid.clone();
+                            let identity = last_conn.identity.clone();
+                            let passphrase = last_conn.passphrase.clone();
+                            
+                            info!("Attempting to reconnect to last access point: {}", ssid);
+                            if self.connect(&ssid, &identity, &passphrase)? {
+                                return Ok(());
+                            }
+                        }
+                    } else {
+                        debug!("Frontend is active, skipping reconnection attempt");
+                    }
                 }
                 NetworkCommand::Timeout => {
                     if !self.activated {
@@ -173,6 +297,14 @@ impl NetworkCommandHandler {
                     identity,
                     passphrase,
                 } => {
+                    // Store connection info before attempting
+                    self.last_connection = Some(LastConnection {
+                        ssid: ssid.clone(),
+                        identity: identity.clone(),
+                        passphrase: passphrase.clone(),
+                    });
+                    self.update_activity();
+                    
                     if self.connect(&ssid, &identity, &passphrase)? {
                         return Ok(());
                     }
@@ -283,6 +415,41 @@ impl NetworkCommandHandler {
         };
 
         Ok(true)
+    }
+
+    fn refresh(&mut self) -> Result<()> {
+        info!("Refreshing list of WiFi networks...");
+        match get_access_points(&self.device) {
+            Ok(access_points) => {
+                self.access_points = access_points;
+                info!("Successfully refreshed list of WiFi networks");
+                self.activated = true;
+                let networks = get_networks(&self.access_points);
+                self.server_tx
+                    .send(NetworkCommandResponse::Networks(networks))
+                    .map_err(|e| Error::with_chain(e, ErrorKind::SendAccessPointSSIDs))?;
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to refresh networks: {}", e);
+                Err(e)
+            }
+        }
+    }
+
+    fn update_activity(&mut self) {
+        debug!("Updating frontend activity status");
+        self.frontend_active = true;
+        self.last_activity_time = std::time::Instant::now();
+    }
+
+    fn check_idle_timeout(&self) -> bool {
+        // Consider frontend idle after 2 minutes (120 seconds) of inactivity
+        const IDLE_TIMEOUT_SECONDS: u64 = 120;
+        
+        let is_idle = self.last_activity_time.elapsed().as_secs() > IDLE_TIMEOUT_SECONDS;
+        
+        is_idle
     }
 }
 
