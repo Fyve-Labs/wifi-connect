@@ -13,14 +13,15 @@ The Rust backend is built using [scripts/build-binary.sh](mdc:scripts/build-bina
 - Ensuring the binary is in the expected location for Docker
 
 ## Dependencies
-Key dependencies in [Cargo.toml](mdc:Cargo.toml):
+Key dependencies in [backend/Cargo.toml](mdc:backend/Cargo.toml):
 - `network-manager`: Interfaces with NetworkManager for WiFi operations
 - `iron`: Web framework for the captive portal
 - `serde`: For JSON serialization/deserialization
 - `error-chain`: For error handling
 
 ## Project Structure
-- Main binary source is in `/src`
+- Rust project is located in the `/backend` directory
+- Main binary source is in `/backend/src`
 - Uses Network Manager for controlling WiFi interfaces
 - Provides a HTTP server for the captive portal
 - Integrates with a React-based UI

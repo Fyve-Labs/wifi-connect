@@ -38,6 +38,10 @@ if ! command -v cargo &> /dev/null; then
 fi
 
 # First make a clean cargo build to download all dependencies
+if [ ! -f "Cargo.toml" ]; then
+    echo "Cargo.toml not found. Running from src directory."
+    cd src
+fi
 cargo clean
 cargo build --release
 

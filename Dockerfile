@@ -22,12 +22,11 @@ COPY ui ./ui
 RUN chmod +x ./scripts/build-ui.sh && ./scripts/build-ui.sh
 
 # Copy backend files
+COPY backend ./backend
 COPY scripts/build-binary.sh ./scripts/build-binary.sh
-COPY Cargo.toml ./
-COPY src ./src
 
 # Build WiFi Connect binary
-RUN chmod +x ./scripts/build-binary.sh && ./scripts/build-binary.sh
+RUN cd backend && chmod +x ../scripts/build-binary.sh && ../scripts/build-binary.sh
 
 # Create the final lightweight image
 FROM debian:bookworm-slim
@@ -36,7 +35,6 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     dnsmasq \
     wireless-tools \
-    network-manager \
     dbus \
     procps \
     curl \
@@ -50,7 +48,7 @@ WORKDIR /usr/src/app
 RUN mkdir -p ui
 
 # Copy the binary and UI from builder stage
-COPY --from=builder /usr/src/app/target/release/wifi-connect /usr/src/app/
+COPY --from=builder /usr/src/app/backend/target/release/wifi-connect /usr/src/app/
 COPY --from=builder /usr/src/app/ui/ /usr/src/app/ui/
 COPY scripts/start-network.sh scripts/start.sh /usr/src/app/
 
