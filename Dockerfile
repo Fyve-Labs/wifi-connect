@@ -1,4 +1,4 @@
-FROM rust:1.70-slim-buster as builder
+FROM rust:slim-bookworm as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,22 +15,22 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /usr/src/app
 
 # Copy project files and scripts
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
+COPY scripts/build-ui.sh ./scripts/build-ui.sh
 COPY ui ./ui
-COPY scripts ./scripts
-
-# Make scripts executable
-RUN chmod +x ./scripts/*.sh
 
 # Build UI
-RUN ./scripts/build-ui.sh
+RUN chmod +x ./scripts/build-ui.sh && ./scripts/build-ui.sh
+
+# Copy backend files
+COPY scripts/build-binary.sh ./scripts/build-binary.sh
+COPY Cargo.toml ./
+COPY src ./src
 
 # Build WiFi Connect binary
-RUN ./scripts/build-binary.sh
+RUN chmod +x ./scripts/build-binary.sh && ./scripts/build-binary.sh
 
 # Create the final lightweight image
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -40,6 +40,9 @@ RUN apt-get update && apt-get install -y \
     dbus \
     procps \
     curl \
+    iputils-ping \
+    host \
+    systemd \
     && rm -rf /var/lib/apt/lists/*
 
 # Create necessary directories
@@ -48,14 +51,15 @@ RUN mkdir -p ui
 
 # Copy the binary and UI from builder stage
 COPY --from=builder /usr/src/app/target/release/wifi-connect /usr/src/app/
-COPY --from=builder /usr/src/app/ui/build /usr/src/app/ui
-COPY --from=builder /usr/src/app/scripts/start.sh /usr/src/app/
-
-# Create a script to setup for different environments
-COPY scripts/start-network.sh /usr/src/app/
+COPY --from=builder /usr/src/app/ui/ /usr/src/app/ui/
+COPY scripts/start-network.sh scripts/start.sh /usr/src/app/
 
 # Make scripts executable
 RUN chmod +x /usr/src/app/start.sh /usr/src/app/start-network.sh
+
+# Healthcheck to verify WiFi monitoring is working
+HEALTHCHECK --interval=2m --timeout=30s \
+  CMD pgrep -f "bash.*start.sh" || exit 1
 
 # Command to run when container starts
 CMD ["bash", "start.sh"] 

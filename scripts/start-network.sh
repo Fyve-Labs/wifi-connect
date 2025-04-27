@@ -1,83 +1,69 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
-
-# Detect system and configure network manager accordingly
-export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
-
-# Function to check if command exists
-command_exists() {
-    command -v "$1" &> /dev/null
+# Set up Network Manager and dnsmasq for captive portal
+setup_network_services() {
+    echo "Setting up network services..."
+    
+    # Ensure Network Manager is running
+    if ! systemctl is-active --quiet NetworkManager; then
+        echo "Starting NetworkManager..."
+        systemctl start NetworkManager || true
+    fi
+    
+    # Ensure dnsmasq is ready for the captive portal
+    systemctl stop dnsmasq 2>/dev/null || true
+    
+    # Make sure forwarding is enabled
+    echo 1 > /proc/sys/net/ipv4/ip_forward
 }
 
-# Function to detect distribution
-detect_distribution() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        echo "$ID"
-    elif [ -f /etc/debian_version ]; then
-        echo "debian"
-    elif [ -f /etc/redhat-release ]; then
-        echo "redhat"
+# Verify captive portal functionality
+verify_captive_portal() {
+    local PORTAL_IP="192.168.42.1"
+    local PORTAL_PORT="80"
+    
+    # Check if the captive portal server is responding
+    if curl -s --connect-timeout 5 http://$PORTAL_IP:$PORTAL_PORT >/dev/null; then
+        echo "Captive portal server is running correctly"
+        return 0
     else
-        echo "unknown"
+        echo "Captive portal server is not responding"
+        return 1
     fi
 }
 
-DISTRO=$(detect_distribution)
-echo "Detected distribution: $DISTRO"
-
-# Check if NetworkManager is installed
-if ! command_exists nmcli; then
-    echo "NetworkManager is not installed. Installing..."
+# Check for internet connectivity
+check_internet() {
+    # Use multiple methods to verify connection
     
-    case "$DISTRO" in
-        raspbian|debian|ubuntu)
-            apt-get update
-            apt-get install -y network-manager
-            ;;
-        fedora|centos|rhel)
-            dnf install -y NetworkManager
-            ;;
-        alpine)
-            apk add networkmanager
-            ;;
-        *)
-            echo "Unsupported distribution for automatic NetworkManager installation."
-            echo "Please install NetworkManager manually and try again."
-            exit 1
-            ;;
-    esac
-    
-    # Enable and start NetworkManager
-    if command_exists systemctl; then
-        systemctl enable NetworkManager
-        systemctl start NetworkManager
-    elif command_exists service; then
-        service NetworkManager start
-    else
-        echo "Could not start NetworkManager. Please start it manually."
+    # Method 1: Check network connectivity state
+    if nmcli -t g | grep -q "full"; then
+        echo "Network Manager reports full connectivity"
+        return 0
     fi
-fi
-
-# Wait for NetworkManager to be fully functional
-if command_exists nmcli; then
-    echo "Waiting for NetworkManager to be ready..."
-    max_retries=10
-    counter=0
     
-    while ! nmcli general status &> /dev/null && [ $counter -lt $max_retries ]; do
-        echo "NetworkManager not ready yet. Waiting..."
-        sleep 2
-        counter=$((counter+1))
-    done
-    
-    if [ $counter -eq $max_retries ]; then
-        echo "Warning: NetworkManager did not become ready in time."
-    else
-        echo "NetworkManager is ready."
+    # Method 2: Try to reach a reliable internet host
+    if ping -c 1 -W 5 8.8.8.8 >/dev/null 2>&1; then
+        echo "Successfully pinged 8.8.8.8"
+        return 0
     fi
-fi
+    
+    # Method 3: Try DNS resolution
+    if host -W 5 google.com >/dev/null 2>&1; then
+        echo "Successfully resolved DNS"
+        return 0
+    fi
+    
+    echo "No internet connectivity detected"
+    return 1
+}
 
-# Start wifi-connect with correct permissions
-exec ./wifi-connect "$@" 
+# Export functions for use in other scripts
+export -f setup_network_services
+export -f verify_captive_portal
+export -f check_internet
+
+# Run setup if executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    setup_network_services
+fi 
