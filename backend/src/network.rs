@@ -10,11 +10,11 @@ use network_manager::{
     DeviceState, DeviceType, NetworkManager, Security, ServiceState,
 };
 
-use config::Config;
-use dnsmasq::{start_dnsmasq, stop_dnsmasq};
-use errors::*;
-use exit::{exit, trap_exit_signals, ExitResult};
-use server::start_server;
+use crate::config::Config;
+use crate::dnsmasq::{start_dnsmasq, stop_dnsmasq};
+use crate::errors::*;
+use crate::exit::{exit, trap_exit_signals, ExitResult};
+use crate::server::start_server;
 
 pub enum NetworkCommand {
     Activate,
@@ -187,7 +187,7 @@ impl NetworkCommandHandler {
             Err(e) => {
                 // Sleep for a second, so that other threads may log error info.
                 thread::sleep(Duration::from_secs(1));
-                Err(e).chain_err(|| ErrorKind::RecvNetworkCommand)
+                Err(Error::with_chain(e, ErrorKind::RecvNetworkCommand))
             }
         }
     }
@@ -202,71 +202,87 @@ impl NetworkCommandHandler {
         let _ = exit_tx.send(result);
     }
 
-    fn activate(&mut self) -> ExitResult {
-        self.activated = true;
-
+    fn activate(&mut self) -> Result<()> {
         let networks = get_networks(&self.access_points);
+
+        self.activated = true;
 
         self.server_tx
             .send(NetworkCommandResponse::Networks(networks))
-            .chain_err(|| ErrorKind::SendAccessPointSSIDs)
+            .map_err(|e| Error::with_chain(e, ErrorKind::SendAccessPointSSIDs))?;
+
+        Ok(())
     }
 
     fn connect(&mut self, ssid: &str, identity: &str, passphrase: &str) -> Result<bool> {
-        delete_existing_connections_to_same_network(&self.manager, ssid);
+        let access_point = match find_access_point(&self.access_points, ssid) {
+            Some(access_point) => access_point,
+            None => {
+                warn!("'{}' is not in the access point list", ssid);
+                return Ok(false);
+            }
+        };
 
         if let Some(ref connection) = self.portal_connection {
             stop_portal(connection, &self.config)?;
+            self.portal_connection = None;
         }
 
-        self.portal_connection = None;
+        let access_point_credentials = init_access_point_credentials(access_point, identity, passphrase);
 
-        self.access_points = get_access_points(&self.device)?;
+        info!("Connecting to access point '{}'...", ssid);
 
-        if let Some(access_point) = find_access_point(&self.access_points, ssid) {
-            let wifi_device = self.device.as_wifi_device().unwrap();
+        delete_existing_connections_to_same_network(&self.manager, ssid);
 
-            info!("Connecting to access point '{}'...", ssid);
+        let result = match self.device.as_wifi_device().unwrap().connect(access_point, &access_point_credentials) {
+            Ok((connection, state)) => (connection, state),
+            Err(e) => {
+                error!("Could not connect to the access point '{}': {}", ssid, e);
+                error!("Reactivating the WiFi connection point...");
 
-            let credentials = init_access_point_credentials(access_point, identity, passphrase);
+                self.portal_connection = Some(create_portal(&self.device, &self.config)?);
 
-            match wifi_device.connect(access_point, &credentials) {
-                Ok((connection, state)) => {
-                    if state == ConnectionState::Activated {
-                        match wait_for_connectivity(&self.manager, 20) {
-                            Ok(has_connectivity) => {
-                                if has_connectivity {
-                                    info!("Internet connectivity established");
-                                } else {
-                                    warn!("Cannot establish Internet connectivity");
-                                }
-                            }
-                            Err(err) => error!("Getting Internet connectivity failed: {}", err),
-                        }
+                self.activate()?;
 
-                        return Ok(true);
-                    }
+                return Ok(false);
+            }
+        };
+        
+        let connection = result.0;
 
-                    if let Err(err) = connection.delete() {
-                        error!("Deleting connection object failed: {}", err)
-                    }
+        match wait_for_connectivity(&self.manager, self.config.activity_timeout) {
+            Ok(has_connectivity) => {
+                if has_connectivity {
+                    info!("Internet connectivity established");
+                } else {
+                    error!("Could not establish Internet connectivity");
+                    connection.delete()?;
 
-                    warn!(
-                        "Connection to access point not activated '{}': {:?}",
-                        ssid, state
-                    );
-                }
-                Err(e) => {
-                    warn!("Error connecting to access point '{}': {}", ssid, e);
+                    self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+
+                    self.activate()?;
+
+                    return Ok(false);
                 }
             }
-        }
+            Err(err) => {
+                error!(
+                    "Waiting for Internet connectivity failed: {}",
+                    err.to_string()
+                );
+                error!("Reactivating the WiFi connection point...");
 
-        self.access_points = get_access_points(&self.device)?;
+                connection.delete()?;
 
-        self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+                self.portal_connection = Some(create_portal(&self.device, &self.config)?);
 
-        Ok(false)
+                self.activate()?;
+
+                return Ok(false);
+            }
+        };
+
+        Ok(true)
     }
 }
 

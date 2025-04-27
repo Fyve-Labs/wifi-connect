@@ -32,6 +32,15 @@ if [ -d "out" ]; then
     # Move contents from 'out' to 'build' to maintain compatibility with existing code
     cp -r out/* build/
     
+    # Ensure static directory structure in build
+    mkdir -p build/static/img build/static/css build/static/js
+    
+    # Copy static assets from public to build/static if needed
+    if [ -d "public/static" ]; then
+        echo "Copying static assets to build directory..."
+        cp -r public/static/* build/static/
+    fi
+    
     echo "Copied static export to build directory for backend to serve"
 else
     echo "Warning: 'out' directory not found after build, checking if content is in 'build'"

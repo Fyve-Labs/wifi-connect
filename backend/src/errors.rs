@@ -1,6 +1,6 @@
 use network_manager;
 
-use network;
+use crate::network;
 
 // Use the error_chain macro with the proper config
 // The error_chain crate will use to_string() instead of description() in newer Rust
@@ -8,7 +8,7 @@ error_chain! {
     foreign_links {
         Io(::std::io::Error);
         Recv(::std::sync::mpsc::RecvError);
-        SendNetworkCommand(::std::sync::mpsc::SendError<network::NetworkCommand>);
+        SendNetworkCommand(::std::sync::mpsc::SendError<crate::network::NetworkCommand>);
         Nix(::nix::Error);
     }
 

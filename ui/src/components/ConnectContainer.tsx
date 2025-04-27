@@ -117,7 +117,7 @@ export const ConnectContainer: React.FC = () => {
     <>
       <Header>
         <Logo>
-          <Image src="/logo.svg" alt="Balena" width={100} height={30} priority />
+          <Image src="/static/img/logo.svg" alt="Balena" width={100} height={30} priority />
         </Logo>
       </Header>
 

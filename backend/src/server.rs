@@ -11,15 +11,15 @@ use iron::{
 use iron_cors::CorsMiddleware;
 use mount::Mount;
 use params::{FromValue, Params};
-use path::PathBuf;
+use std::path::PathBuf;
 use persistent::Write;
 use router::Router;
 use serde_json;
 use staticfile::Static;
 
-use errors::*;
-use exit::{exit, ExitResult};
-use network::{NetworkCommand, NetworkCommandResponse};
+use crate::errors::*;
+use crate::exit::{exit, ExitResult};
+use crate::network::{NetworkCommand, NetworkCommandResponse};
 
 struct RequestSharedState {
     gateway: Ipv4Addr,
@@ -103,10 +103,10 @@ fn exit_with_error<E>(state: &RequestSharedState, e: E, e_kind: ErrorKind) -> Ir
 where
     E: ::std::error::Error + Send + 'static,
 {
-    // Use ToString trait implementation instead of deprecated description()
+    // Create a simple error chain for Rust 2021
     let error_message = e_kind.to_string();
-    let err = Err::<Response, E>(e).chain_err(|| e_kind);
-    exit(&state.exit_tx, err.unwrap_err());
+    let err = Error::from_kind(e_kind);
+    exit(&state.exit_tx, err);
     Err(IronError::new(
         StringError(error_message),
         status::InternalServerError,

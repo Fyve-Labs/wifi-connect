@@ -2,32 +2,34 @@ use std::process::{Child, Command};
 
 use network_manager::Device;
 
-use config::Config;
-use errors::*;
+use crate::config::Config;
+use crate::errors::*;
 
 pub fn start_dnsmasq(config: &Config, device: &Device) -> Result<Child> {
-    let args = [
-        &format!("--address=/#/{}", config.gateway),
-        &format!("--dhcp-range={}", config.dhcp_range),
-        &format!("--dhcp-option=option:router,{}", config.gateway),
-        &format!("--interface={}", device.interface()),
-        "--keep-in-foreground",
-        "--bind-interfaces",
-        "--except-interface=lo",
-        "--conf-file",
-        "--no-hosts",
+    let interface = device.interface();
+
+    let mut args = vec![
+        format!("--address=/#/{}", config.gateway),
+        "--dhcp-authoritative".to_string(),
+        "-p".to_string(),
+        "0".to_string(),
+        "--keep-in-foreground".to_string(),
+        "--bind-interfaces".to_string(),
+        "--except-interface=lo".to_string(),
+        format!("--interface={}", interface),
+        format!("--dhcp-range={0}.3,{0}.254,255.255.255.0,24h", config.gateway),
+        format!("--dhcp-option=option:router,{}", config.gateway),
     ];
 
     Command::new("dnsmasq")
         .args(args)
         .spawn()
-        .chain_err(|| ErrorKind::Dnsmasq)
+        .map_err(|e| Error::with_chain(e, ErrorKind::Dnsmasq))
 }
 
 pub fn stop_dnsmasq(dnsmasq: &mut Child) -> Result<()> {
-    dnsmasq.kill()?;
-
-    dnsmasq.wait()?;
-
-    Ok(())
+    dnsmasq.kill().map_err(|e| {
+        warn!("Failed to kill dnsmasq: {}", e);
+        Error::with_chain(e, ErrorKind::Dnsmasq)
+    })
 }
