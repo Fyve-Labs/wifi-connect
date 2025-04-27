@@ -6,7 +6,40 @@ setup_network_services() {
     
     # Ensure dnsmasq is ready for the captive portal
     if command -v dnsmasq >/dev/null 2>&1; then
+        # Stop any running dnsmasq instance
         systemctl stop dnsmasq 2>/dev/null || pkill dnsmasq 2>/dev/null || true
+        
+        # Configure dnsmasq for captive portal
+        # Create a temporary configuration file
+        DNSMASQ_CONF=$(mktemp)
+        
+        # Write configuration
+        cat > "$DNSMASQ_CONF" << EOF
+# Don't use /etc/hosts or /etc/resolv.conf
+no-resolv
+no-hosts
+
+# Serve the captive portal for all domain requests
+address=/#/192.168.42.1
+
+# Interface to bind to
+interface=wlan0
+
+# Enable DHCP server
+dhcp-range=192.168.42.2,192.168.42.254,255.255.255.0,12h
+
+# Set router and DNS server
+dhcp-option=option:router,192.168.42.1
+dhcp-option=option:dns-server,192.168.42.1
+EOF
+        
+        # Start dnsmasq with our configuration
+        dnsmasq -C "$DNSMASQ_CONF" || echo "Failed to start dnsmasq"
+        
+        # Clean up temp file
+        rm -f "$DNSMASQ_CONF"
+    else
+        echo "WARNING: dnsmasq not found. Captive portal may not function correctly."
     fi
 }
 

@@ -49,11 +49,11 @@ RUN mkdir -p ui
 
 # Copy the binary and UI from builder stage
 COPY --from=builder /usr/src/app/backend/target/release/wifi-connect /usr/src/app/
-COPY --from=builder /usr/src/app/ui/ /usr/src/app/ui/
-COPY scripts/start-network.sh scripts/start.sh /usr/src/app/
+COPY --from=builder /usr/src/app/ui/out /usr/src/app/ui/
+COPY scripts/start-network.sh scripts/start.sh scripts/verify-ui-integration.sh /usr/src/app/
 
 # Make scripts executable
-RUN chmod +x /usr/src/app/start.sh /usr/src/app/start-network.sh
+RUN chmod +x /usr/src/app/start.sh /usr/src/app/start-network.sh /usr/src/app/verify-ui-integration.sh
 
 # Healthcheck to verify WiFi monitoring is working
 HEALTHCHECK --interval=2m --timeout=30s \

@@ -4,6 +4,7 @@ version = "4.11.83"
 authors = ["Zahari Petkov <zahari@balena.io>"]
 description = "Easy WiFi setup for Linux devices from your mobile phone or laptop"
 publish = false
+edition = "2018"
 
 [dependencies]
 network-manager = { git = "https://github.com/balena-io-modules/network-manager.git" }
@@ -25,6 +26,7 @@ nix = "0.25"
 [dependencies.error-chain]
 version = "0.12"
 default-features = false
+features = ["backtrace"]
 
 [profile.release]
 lto = true

@@ -9,6 +9,11 @@ fi
 # Source network functions
 source ./start-network.sh
 
+# Source UI verification functions if the script exists
+if [ -f ./verify-ui-integration.sh ]; then
+    source ./verify-ui-integration.sh
+fi
+
 # Optional step - it takes couple of seconds (or longer) to establish a WiFi connection
 # sometimes. In this case, following checks will fail and wifi-connect
 # will be launched even if the device will be able to connect to a WiFi network.
@@ -47,6 +52,14 @@ start_wifi_connect() {
         return 0
     fi
     
+    # Verify UI integration
+    if type verify_ui_backend_integration >/dev/null 2>&1; then
+        verify_ui_backend_integration
+        if [ $? -ne 0 ]; then
+            echo "WARNING: UI integration check failed. The captive portal UI may not function correctly."
+        fi
+    fi
+    
     # Set up required network services
     setup_network_services
     
@@ -67,6 +80,15 @@ start_wifi_connect() {
             verify_captive_portal
             if [ $? -eq 0 ]; then
                 echo "Captive portal verified working correctly"
+                
+                # Verify captive portal redirection if the function exists
+                if type verify_captive_portal_redirect >/dev/null 2>&1; then
+                    verify_captive_portal_redirect
+                    if [ $? -ne 0 ]; then
+                        echo "WARNING: Captive portal redirection may not be working correctly."
+                        echo "Users might not be automatically redirected to the portal."
+                    fi
+                fi
             else
                 echo "Warning: Captive portal may not be working properly"
             fi

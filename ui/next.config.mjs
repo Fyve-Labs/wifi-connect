@@ -2,21 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'export',
   compiler: {
     styledComponents: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/networks',
-        destination: process.env.API_URL ? `${process.env.API_URL}/networks` : 'http://localhost:4000/networks',
-      },
-      {
-        source: '/connect',
-        destination: process.env.API_URL ? `${process.env.API_URL}/connect` : 'http://localhost:4000/connect',
-      },
-    ];
-  },
+  // Removed the rewrites as these endpoints will be served by the backend directly
 };
 
 export default nextConfig; 

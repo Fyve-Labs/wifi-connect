@@ -2,6 +2,8 @@ use network_manager;
 
 use network;
 
+// Use the error_chain macro with the proper config
+// The error_chain crate will use to_string() instead of description() in newer Rust
 error_chain! {
     foreign_links {
         Io(::std::io::Error);
@@ -17,26 +19,32 @@ error_chain! {
     errors {
         RecvAccessPointSSIDs {
             description("Receiving access point SSIDs failed")
+            display("Failed to receive access point SSIDs")
         }
 
         SendAccessPointSSIDs {
             description("Sending access point SSIDs failed")
+            display("Failed to send access point SSIDs")
         }
 
         SerializeAccessPointSSIDs {
             description("Serializing access point SSIDs failed")
+            display("Failed to serialize access point SSIDs")
         }
 
         RecvNetworkCommand {
             description("Receiving network command failed")
+            display("Failed to receive network command")
         }
 
         SendNetworkCommandActivate {
             description("Sending NetworkCommand::Activate failed")
+            display("Failed to send network activation command")
         }
 
         SendNetworkCommandConnect {
             description("Sending NetworkCommand::Connect failed")
+            display("Failed to send network connect command")
         }
 
         DeviceByInterface(interface: String) {
@@ -56,22 +64,27 @@ error_chain! {
 
         NoWiFiDevice {
             description("Cannot find a WiFi device")
+            display("Cannot find a WiFi device")
         }
 
         NoAccessPoints {
             description("Getting access points failed")
+            display("Failed to get access points")
         }
 
         CreateCaptivePortal {
             description("Creating the captive portal failed")
+            display("Failed to create the captive portal")
         }
 
         StopAccessPoint {
             description("Stopping the access point failed")
+            display("Failed to stop the access point")
         }
 
         DeleteAccessPoint {
             description("Deleting access point connection profile failed")
+            display("Failed to delete access point connection profile")
         }
 
         StartHTTPServer(address: String, reason: String) {
@@ -81,22 +94,27 @@ error_chain! {
 
         StartActiveNetworkManager {
             description("Starting the NetworkManager service with active state failed")
+            display("Failed to start the NetworkManager service with active state")
         }
 
         StartNetworkManager {
             description("Starting the NetworkManager service failed")
+            display("Failed to start the NetworkManager service")
         }
 
         Dnsmasq {
             description("Spawning dnsmasq failed")
+            display("Failed to spawn dnsmasq")
         }
 
         BlockExitSignals {
             description("Blocking exit signals failed")
+            display("Failed to block exit signals")
         }
 
         TrapExitSignals {
             description("Trapping exit signals failed")
+            display("Failed to trap exit signals")
         }
 
         RootPrivilegesRequired(app: String) {

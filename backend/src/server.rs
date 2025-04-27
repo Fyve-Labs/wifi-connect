@@ -37,13 +37,14 @@ struct StringError(String);
 
 impl fmt::Display for StringError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
+        write!(f, "{}", self.0)
     }
 }
 
 impl StdError for StringError {
-    fn description(&self) -> &str {
-        &self.0
+    // Modern implementation of StdError doesn't require description()
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        None
     }
 }
 
@@ -102,11 +103,12 @@ fn exit_with_error<E>(state: &RequestSharedState, e: E, e_kind: ErrorKind) -> Ir
 where
     E: ::std::error::Error + Send + 'static,
 {
-    let description = e_kind.description().into();
+    // Use ToString trait implementation instead of deprecated description()
+    let error_message = e_kind.to_string();
     let err = Err::<Response, E>(e).chain_err(|| e_kind);
     exit(&state.exit_tx, err.unwrap_err());
     Err(IronError::new(
-        StringError(description),
+        StringError(error_message),
         status::InternalServerError,
     ))
 }
@@ -148,18 +150,31 @@ pub fn start_server(
         exit_tx,
     };
 
+    // Log UI directory for debugging
+    info!("Using UI directory: {:?}", ui_directory);
+
     let mut router = Router::new();
+    // Serve the main UI from the root path
     router.get("/", Static::new(ui_directory), "index");
+    // API endpoints
     router.get("/networks", networks, "networks");
     router.post("/connect", connect, "connect");
 
+    // Next.js static export structure is different - we need to mount all static assets correctly
     let mut assets = Mount::new();
     assets.mount("/", router);
-    assets.mount("/static", Static::new(ui_directory.join("static")));
-    assets.mount("/css", Static::new(ui_directory.join("css")));
-    assets.mount("/img", Static::new(ui_directory.join("img")));
-    assets.mount("/js", Static::new(ui_directory.join("js")));
-
+    
+    // Mount Next.js static assets
+    if ui_directory.join("_next").exists() {
+        info!("Mounting Next.js static files from _next directory");
+        assets.mount("/_next", Static::new(ui_directory.join("_next")));
+    } else {
+        warn!("Next.js _next directory not found at {:?}", ui_directory.join("_next"));
+    }
+    
+    // Also mount the old paths for backward compatibility
+    assets.mount("/static", Static::new(ui_directory));
+    
     let cors_middleware = CorsMiddleware::with_allow_any();
 
     let mut chain = Chain::new(assets);
@@ -167,9 +182,10 @@ pub fn start_server(
     chain.link_after(RedirectMiddleware);
     chain.link_around(cors_middleware);
 
-    let address = format!("{}:{}", gateway_clone, listening_port);
+    // Bind to all interfaces (0.0.0.0) instead of just the gateway IP
+    let address = format!("0.0.0.0:{}", listening_port);
 
-    info!("Starting HTTP server on {}", &address);
+    info!("Starting HTTP server on {} (accessible via {}:{})", address, gateway_clone, listening_port);
 
     if let Err(e) = Iron::new(chain).http(&address) {
         exit(

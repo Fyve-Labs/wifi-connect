@@ -51,8 +51,8 @@ export const ConnectContainer: React.FC = () => {
       setError('');
       
       try {
-        // Try to fetch from the real endpoint first
-        const response = await fetch('http://localhost/networks', {
+        // Use relative path that will be handled by the backend
+        const response = await fetch('/networks', {
           method: 'GET',
           headers: {
             'Accept': 'application/json'
@@ -87,8 +87,8 @@ export const ConnectContainer: React.FC = () => {
     setError('');
 
     try {
-      // Make the real API call
-      const response = await fetch('http://localhost/connect', {
+      // Use relative path that will be handled by the backend
+      const response = await fetch('/connect', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: {

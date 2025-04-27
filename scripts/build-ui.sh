@@ -18,9 +18,28 @@ fi
 echo "Installing dependencies..."
 npm install
 
-# Build the UI
-echo "Building UI..."
+# Build the UI with static export
+echo "Building UI with static export..."
 npm run build
+
+# Verify the output directory exists
+if [ -d "out" ]; then
+    echo "Static export generated successfully in 'out' directory"
+    
+    # Create a build directory if it doesn't exist
+    mkdir -p build
+    
+    # Move contents from 'out' to 'build' to maintain compatibility with existing code
+    cp -r out/* build/
+    
+    echo "Copied static export to build directory for backend to serve"
+else
+    echo "Warning: 'out' directory not found after build, checking if content is in 'build'"
+    if [ ! -d "build" ]; then
+        echo "Error: No static build found. Build process may have failed."
+        exit 1
+    fi
+fi
 
 # Clean up node_modules to reduce size
 echo "Cleaning up..."
