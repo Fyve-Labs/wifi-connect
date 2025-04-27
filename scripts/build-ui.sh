@@ -14,6 +14,9 @@ if ! command -v npm &> /dev/null; then
     apt-get install -y nodejs npm
 fi
 
+# Disable telemetry
+npx next telemetry disable
+
 # Install dependencies
 echo "Installing dependencies..."
 npm install

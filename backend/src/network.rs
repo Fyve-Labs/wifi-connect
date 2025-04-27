@@ -5,6 +5,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 use std::env;
+use std::time::Instant;
 
 use network_manager::{
     AccessPoint, AccessPointCredentials, Connection, Connectivity, Device,
@@ -335,6 +336,7 @@ impl NetworkCommandHandler {
     }
 
     fn activate(&mut self) -> Result<()> {
+        // Get the networks directly from access points, matching the original code
         let networks = get_networks(&self.access_points);
 
         self.activated = true;
@@ -367,7 +369,10 @@ impl NetworkCommandHandler {
         delete_existing_connections_to_same_network(&self.manager, ssid);
 
         let result = match self.device.as_wifi_device().unwrap().connect(access_point, &access_point_credentials) {
-            Ok((connection, state)) => (connection, state),
+            Ok((connection, state)) => {
+                info!("connect: Connection: {:?}, State: {:?}", connection, state);
+                (connection, state)
+            },
             Err(e) => {
                 error!("Could not connect to the access point '{}': {}", ssid, e);
                 error!("Reactivating the WiFi connection point...");
@@ -419,15 +424,21 @@ impl NetworkCommandHandler {
 
     fn refresh(&mut self) -> Result<()> {
         info!("Refreshing list of WiFi networks...");
+        
+        // Directly get access points like in the original code
         match get_access_points(&self.device) {
             Ok(access_points) => {
                 self.access_points = access_points;
                 info!("Successfully refreshed list of WiFi networks");
                 self.activated = true;
+                
                 let networks = get_networks(&self.access_points);
+                
+                // Send the networks to the server
                 self.server_tx
                     .send(NetworkCommandResponse::Networks(networks))
                     .map_err(|e| Error::with_chain(e, ErrorKind::SendAccessPointSSIDs))?;
+                
                 Ok(())
             }
             Err(e) => {
@@ -537,20 +548,21 @@ fn find_wifi_managed_device(devices: Vec<Device>) -> Result<Option<Device>> {
     Ok(None)
 }
 
+// Process access points by filtering invalid ones and removing duplicates
 fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>> {
-    get_access_points_impl(device).chain_err(|| ErrorKind::NoAccessPoints)
-}
-
-fn get_access_points_impl(device: &Device) -> Result<Vec<AccessPoint>> {
     let retries_allowed = 10;
     let mut retries = 0;
 
     // After stopping the hotspot we may have to wait a bit for the list
     // of access points to become available
     while retries < retries_allowed {
+
         let wifi_device = device.as_wifi_device().unwrap();
         let mut access_points = wifi_device.get_access_points()?;
+        info!("get_access_points: Access points: {:?}", access_points);
 
+        /*
+        // Filter invalid access points directly as in the original code
         access_points.retain(|ap| ap.ssid().as_str().is_ok());
 
         // Purge access points with duplicate SSIDs
@@ -559,7 +571,7 @@ fn get_access_points_impl(device: &Device) -> Result<Vec<AccessPoint>> {
 
         // Remove access points without SSID (hidden)
         access_points.retain(|ap| !ap.ssid().as_str().unwrap().is_empty());
-
+        */
         if !access_points.is_empty() {
             info!(
                 "Access points: {:?}",
@@ -586,6 +598,39 @@ fn get_access_points_ssids(access_points: &[AccessPoint]) -> Vec<&str> {
 
 fn get_networks(access_points: &[AccessPoint]) -> Vec<Network> {
     access_points.iter().map(get_network_info).collect()
+}
+
+// Filter access points that have valid SSIDs and remove duplicates
+// This is kept for API compatibility but we now filter directly in get_access_points
+fn filter_access_points(access_points: Vec<AccessPoint>) -> Vec<AccessPoint> {
+    let mut filtered_aps = Vec::new();
+    let mut seen_ssids = HashSet::new();
+    
+    for ap in access_points {
+        // Check if the access point has a valid SSID that can be converted to a string
+        if let Ok(ssid_str) = ap.ssid().as_str() {
+            // Skip empty SSIDs (hidden networks)
+            if ssid_str.is_empty() {
+                continue;
+            }
+            
+            // Skip if we've already seen this SSID (removes duplicates)
+            if !seen_ssids.insert(ap.ssid.clone()) {
+                continue;
+            }
+            
+            filtered_aps.push(ap);
+        }
+    }
+    
+    filtered_aps
+}
+
+// Filter networks to exclude the current hotspot SSID
+fn filter_networks(networks: Vec<Network>, current_ssid: &str) -> Vec<Network> {
+    networks.into_iter()
+        .filter(|network| network.ssid != current_ssid)
+        .collect()
 }
 
 fn get_network_info(access_point: &AccessPoint) -> Network {
@@ -765,4 +810,86 @@ fn is_access_point_connection(connection: &Connection) -> bool {
 
 fn is_wifi_connection(connection: &Connection) -> bool {
     connection.settings().kind == "802-11-wireless"
+}
+
+// Get networks from filtered access points for a given device and SSID filter
+pub fn get_networks_from_device(
+    device: &Device, 
+    current_ssid: &str
+) -> Result<Vec<Network>> {
+    // Get access points - they are already filtered in the get_access_points function
+    let access_points = get_access_points(device)?;
+    info!("get_networks_from_device: Access points: {:?}", access_points);
+    if access_points.is_empty() {
+        debug!("No valid access points found");
+        return Ok(vec![]);
+    }
+    
+    info!("Found {} valid access points", access_points.len());
+    
+    // Convert access points to networks and filter by SSID
+    let networks = get_networks(&access_points);
+    let filtered_networks = filter_networks(networks, current_ssid);
+    info!("get_networks_from_device: Filtered networks: {:?}", filtered_networks);
+    debug!("Found {} networks (after filtering current SSID)", filtered_networks.len());
+    
+    Ok(filtered_networks)
+}
+
+pub fn get_access_points_impl() -> Result<Vec<Network>> {
+    let start = Instant::now();
+    debug!("Getting access points");
+
+    let config = crate::config::Config::new()?;
+    let current_ssid = config.ssid;
+    
+    let mut attempt = 0;
+    const MAX_RETRY: usize = 10;
+    let mut delay = Duration::from_millis(100);
+
+    let manager = NetworkManager::new();
+
+    loop {
+        if attempt > 0 {
+            debug!("Attempt {} to get_access_points", attempt + 1);
+        }
+
+        // Get device
+        let device = match find_device(&manager, &config.interface) {
+            Ok(device) => device,
+            Err(e) => {
+                error!("Failed to find WiFi device: {}", e);
+                attempt += 1;
+                if attempt >= MAX_RETRY {
+                    return Ok(vec![]);
+                }
+                // Wait before retrying
+                std::thread::sleep(delay);
+                // Increase the amount of delay gradually
+                delay = std::cmp::min(delay.mul_f32(1.5), Duration::from_secs(2));
+                continue;
+            }
+        };
+        info!("get_networks_from_device: Device: {:?}", device);
+        // Get networks from the device using the same approach as the original code
+        match get_networks_from_device(&device, &current_ssid) {
+            Ok(networks) => {
+                let duration = start.elapsed();
+                info!("get_networks_from_device: Getting access points took: {:?}", duration);
+                return Ok(networks);
+            },
+            Err(e) => {
+                error!("Failed to get networks: {}", e);
+                attempt += 1;
+                if attempt >= MAX_RETRY {
+                    return Ok(vec![]);
+                }
+                // Wait before retrying
+                std::thread::sleep(delay);
+                // Increase the amount of delay gradually
+                delay = std::cmp::min(delay.mul_f32(1.5), Duration::from_secs(2));
+                continue;
+            }
+        }
+    }
 }

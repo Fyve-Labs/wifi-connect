@@ -25,6 +25,12 @@ pub struct Config {
     pub ui_directory: PathBuf,
 }
 
+impl Config {
+    pub fn new() -> Result<Self, crate::errors::Error> {
+        Ok(get_config())
+    }
+}
+
 pub fn get_config() -> Config {
     let matches = App::new(crate_name!())
         .version(crate_version!())

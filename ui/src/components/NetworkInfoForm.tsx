@@ -224,7 +224,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
               onClick={togglePasswordVisibility}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? "👁️" : "👁️‍🗨️"}
+              {!showPassword ? "⛔" : "👁️" }
             </TogglePasswordButton>
           </InputContainer>
         </FormGroup>
