@@ -164,7 +164,8 @@ pub fn start_server(
     let mut assets = Mount::new();
     assets.mount("/", router);
     
-    // Mount Next.js static assets
+    // Mount static assets with proper configuration
+    // Check for Next.js static directories and mount them
     if ui_directory.join("_next").exists() {
         info!("Mounting Next.js static files from _next directory");
         assets.mount("/_next", Static::new(ui_directory.join("_next")));
@@ -172,8 +173,31 @@ pub fn start_server(
         warn!("Next.js _next directory not found at {:?}", ui_directory.join("_next"));
     }
     
-    // Also mount the old paths for backward compatibility
-    assets.mount("/static", Static::new(ui_directory));
+    // Mount static assets directory if it exists
+    if ui_directory.join("static").exists() {
+        info!("Mounting static directory from {:?}", ui_directory.join("static"));
+        assets.mount("/static", Static::new(ui_directory.join("static")));
+    } else {
+        // For compatibility, still mount the UI directory at /static
+        info!("Static directory not found, mounting UI directory at /static for compatibility");
+        assets.mount("/static", Static::new(ui_directory));
+    }
+    
+    // Also mount other common asset directories if they exist
+    if ui_directory.join("images").exists() {
+        info!("Mounting images directory");
+        assets.mount("/images", Static::new(ui_directory.join("images")));
+    }
+    
+    if ui_directory.join("assets").exists() {
+        info!("Mounting assets directory");
+        assets.mount("/assets", Static::new(ui_directory.join("assets")));
+    }
+    
+    if ui_directory.join("public").exists() {
+        info!("Mounting public directory");
+        assets.mount("/public", Static::new(ui_directory.join("public")));
+    }
     
     let cors_middleware = CorsMiddleware::with_allow_any();
 

@@ -25,3 +25,94 @@ Key dependencies in [backend/Cargo.toml](mdc:backend/Cargo.toml):
 - Uses Network Manager for controlling WiFi interfaces
 - Provides a HTTP server for the captive portal
 - Integrates with a React-based UI
+
+## Network Manager Integration
+
+### Core Components
+- `NetworkCommandHandler`: Main struct for handling network operations
+- `NetworkCommand`: Enum defining available commands (Activate, Connect, Exit, Timeout)
+- `NetworkCommandResponse`: Response types for network operations
+- `Network`: Struct representing a WiFi network
+
+### Command Flow
+1. `process_network_commands()` initializes the command handler
+2. Commands are sent through a channel to the handler
+3. The handler processes commands in a loop
+4. Responses are sent back through another channel
+
+### Connection Process
+1. The user selects a WiFi network in the UI
+2. The UI sends a connection request to the backend
+3. The backend stops the captive portal
+4. The backend attempts to connect to the selected network
+5. If successful, the connection is maintained
+6. If unsuccessful, the captive portal is restarted
+
+### Error Handling
+- Use `error-chain` for propagating errors
+- Handle networking errors gracefully
+- Provide meaningful error messages to the UI
+- Log detailed error information for debugging
+- Always clean up resources in error cases
+
+## Network Manager API Guidelines
+
+### Device Management
+- Always check if a device exists before using it
+- Handle the case where no WiFi devices are available
+- Check device state before attempting operations
+- Use proper device type checking (WiFi, Ethernet, etc.)
+
+### Access Point Handling
+- Filter out access points with empty SSIDs
+- Remove duplicate SSIDs from the list
+- Implement retries for scanning access points
+- Sort access points by signal strength when possible
+
+### Authentication
+- Support multiple security types (Open, WPA, WPA2, Enterprise)
+- Handle enterprise authentication correctly
+- Use proper credential storage
+- Clear sensitive information after use
+
+### Connection Management
+- Check for connectivity after connecting
+- Implement a timeout for connection attempts
+- Delete conflicting connections before creating new ones
+- Properly handle connection failures
+
+### Portal Creation
+- Create the portal with proper IP configuration
+- Start the DNS server after creating the portal
+- Set up proper routing for the captive portal
+- Handle portal cleanup correctly
+
+## HTTP Server
+
+### API Endpoints
+- `/networks`: Returns a list of available networks
+- `/connect`: Connects to a specified network
+
+### Static File Serving
+- Serve the UI from the specified directory
+- Mount static assets correctly
+- Handle Next.js static files appropriately
+- Support compatibility paths for backward compatibility
+
+### Error Responses
+- Use proper HTTP status codes
+- Provide meaningful error messages in responses
+- Include only necessary information in error responses
+- Handle CORS correctly
+
+## Testing and Debugging
+- Use structured logging for easier debugging
+- Implement dry-run modes for testing
+- Add verbose logging for network operations
+- Include configuration options for testing scenarios
+
+## Security Considerations
+- Run with minimal required privileges
+- Handle sensitive information securely
+- Validate all input from the UI
+- Limit network exposure to necessary interfaces only

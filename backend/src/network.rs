@@ -6,7 +6,7 @@ use std::thread;
 use std::time::Duration;
 
 use network_manager::{
-    AccessPoint, AccessPointCredentials, Connection, ConnectionState, Connectivity, Device,
+    AccessPoint, AccessPointCredentials, Connection, Connectivity, Device,
     DeviceState, DeviceType, NetworkManager, Security, ServiceState,
 };
 

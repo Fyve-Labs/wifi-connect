@@ -1,7 +1,5 @@
 use network_manager;
 
-use crate::network;
-
 // Use the error_chain macro with the proper config
 // The error_chain crate will use to_string() instead of description() in newer Rust
 error_chain! {

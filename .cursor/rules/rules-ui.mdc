@@ -45,6 +45,29 @@ alwaysApply: false
   `;
   ```
 - Import the theme from `@/styles/theme` for consistent styling
+- Use the theme's color variables instead of hardcoded values
+- Follow the design system's spacing guidelines (4px increments)
+- Use responsive design patterns for all UI components
+
+### Network API Integration
+- All API calls to the backend should include proper error handling
+- Add timeouts to all fetch calls:
+  ```tsx
+  fetch('/networks', {
+    signal: AbortSignal.timeout(5000) // 5 second timeout
+  });
+  ```
+- Show loading states during network operations
+- Implement retry logic for failed network requests (max 3 retries)
+- Cache successful network responses where appropriate
+- Use appropriate HTTP methods (GET for retrieval, POST for modifications)
+
+### WiFi Connection Handling
+- Implement proper validation for WiFi credentials
+- Show appropriate error messages for connection failures
+- Support multiple WiFi security types (Open, WPA, WPA2, Enterprise)
+- Implement a "show password" toggle for password fields
+- Show connection status updates in real-time
 
 ### Avoid Deprecations
 - Do not use the Pages Router (use App Router instead)
@@ -63,13 +86,7 @@ alwaysApply: false
 
 ### API Integration Patterns
 - Always try real API endpoints first before falling back to mock data
-- Use timeout signals to prevent hanging API requests:
-  ```tsx
-  // Set a timeout for network requests
-  fetch('http://localhost/networks', {
-    signal: AbortSignal.timeout(5000) // 5 second timeout
-  });
-  ```
+- Use timeout signals to prevent hanging API requests
 - Implement graceful error handling for failed network requests
 - Provide clear user feedback for both successful and failed API calls
 - Use mock data as a fallback when API endpoints are unavailable
@@ -86,17 +103,21 @@ alwaysApply: false
 - Implement code splitting with dynamic imports
 - Optimize re-renders with React.memo, useMemo, and useCallback
 - Lazy load components when appropriate
+- Keep bundle size small by avoiding unnecessary dependencies
+- Use production builds for deployment
 
 ### Build Process
 - Always run `npm run build` before deploying to production
 - Address all TypeScript errors before deploying
 - Fix all styled-components warnings before production deployment
 - Run `npm run lint --quiet` to check for linting errors
+- Ensure all static assets are properly optimized
 
 ### Package Management
 - Use package versions with exact matches to avoid unexpected updates
 - Run `npm audit fix` to address security vulnerabilities
 - Document any package version changes in commit messages
+- Keep dependencies up-to-date with regular maintenance
 
 ## Troubleshooting
 - If you encounter path alias errors (@/), check that [tsconfig.json](mdc:ui/tsconfig.json) has proper path configurations
@@ -104,3 +125,4 @@ alwaysApply: false
 - If the build fails, check the Next.js configuration in [next.config.mjs](mdc:ui/next.config.mjs)
 - Make sure images are placed in the public directory for Next.js Image component to work correctly
 - When API calls fail, check network connectivity and endpoint URLs first
+- For connection issues, check that backend services are running properly
