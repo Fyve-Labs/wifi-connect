@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Next.js Project Rules - WiFi Connect
 
 ## Development and Build Guidelines
@@ -56,6 +61,26 @@
 - Use the React hooks API correctly (useEffect, useState, useMemo, useCallback)
 - Follow the single responsibility principle
 
+### API Integration Patterns
+- Always try real API endpoints first before falling back to mock data
+- Use timeout signals to prevent hanging API requests:
+  ```tsx
+  // Set a timeout for network requests
+  fetch('http://localhost/networks', {
+    signal: AbortSignal.timeout(5000) // 5 second timeout
+  });
+  ```
+- Implement graceful error handling for failed network requests
+- Provide clear user feedback for both successful and failed API calls
+- Use mock data as a fallback when API endpoints are unavailable
+
+### Error Handling
+- Catch and process errors appropriately at the component level
+- Display user-friendly error messages in the UI
+- Log detailed error information to the console for debugging
+- Use try/catch blocks for all asynchronous operations
+- Implement consistent error messaging patterns across the application
+
 ### Performance Optimization
 - Use Next.js Image component for optimized images
 - Implement code splitting with dynamic imports
@@ -66,6 +91,7 @@
 - Always run `npm run build` before deploying to production
 - Address all TypeScript errors before deploying
 - Fix all styled-components warnings before production deployment
+- Run `npm run lint --quiet` to check for linting errors
 
 ### Package Management
 - Use package versions with exact matches to avoid unexpected updates
@@ -73,6 +99,8 @@
 - Document any package version changes in commit messages
 
 ## Troubleshooting
-- If you encounter path alias errors (@/), check that `tsconfig.json` has proper path configurations
-- For styled-components issues, ensure the registry setup is correct in `/ui/src/lib/registry.tsx`
-- If the build fails, check the Next.js configuration in `next.config.mjs` 
+- If you encounter path alias errors (@/), check that [tsconfig.json](mdc:ui/tsconfig.json) has proper path configurations
+- For styled-components issues, ensure the registry setup is correct in [registry.tsx](mdc:ui/src/lib/registry.tsx)
+- If the build fails, check the Next.js configuration in [next.config.mjs](mdc:ui/next.config.mjs)
+- Make sure images are placed in the public directory for Next.js Image component to work correctly
+- When API calls fail, check network connectivity and endpoint URLs first

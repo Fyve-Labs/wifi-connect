@@ -1,0 +1,26 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rust Backend Architecture
+
+## Build System
+The Rust backend is built using [scripts/build-binary.sh](mdc:scripts/build-binary.sh), which handles:
+- Architecture detection and cross-compilation
+- Building for the host machine first
+- Stripping the binary to reduce size
+- Ensuring the binary is in the expected location for Docker
+
+## Dependencies
+Key dependencies in [Cargo.toml](mdc:Cargo.toml):
+- `network-manager`: Interfaces with NetworkManager for WiFi operations
+- `iron`: Web framework for the captive portal
+- `serde`: For JSON serialization/deserialization
+- `error-chain`: For error handling
+
+## Project Structure
+- Main binary source is in `/src`
+- Uses Network Manager for controlling WiFi interfaces
+- Provides a HTTP server for the captive portal
+- Integrates with a React-based UI
