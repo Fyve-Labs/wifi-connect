@@ -10,6 +10,10 @@ const nextConfig = {
   images: {
     unoptimized: true, // Required for static export
   },
+  // Expose environment variables to the client
+  env: {
+    PORTAL_BRAND: process.env.PORTAL_BRAND,
+  },
   // Removed the rewrites as these endpoints will be served by the backend directly
 };
 

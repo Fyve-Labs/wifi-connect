@@ -116,6 +116,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
   const [formValid, setFormValid] = useState(false);
   const [finalizingRefresh, setFinalizingRefresh] = useState(false);
   const [finalizeMessage, setFinalizeMessage] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Get the currently selected network
   const selectedNetwork = useMemo(() => {
@@ -252,7 +253,8 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formValid) {
+    if (formValid && !isConnecting) {
+      setIsConnecting(true);
       onSubmit(data);
     }
   };
@@ -292,12 +294,14 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
     setShowWarningDialog(false);
   };
 
+  // Determine if inputs should be disabled
+  const inputsDisabled = isRefreshing || polling || finalizingRefresh || isConnecting;
+
   return (
     <FormContainer>
       <Heading>
         Please choose your WiFi network from the list.
       </Heading>
-
       <Form onSubmit={handleSubmit}>
         <FormGroup>
           <RequiredLabel htmlFor="ssid">WiFi Network</RequiredLabel>
@@ -306,7 +310,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
             value={data.ssid || ''}
             onChange={handleChange('ssid')}
             required
-            disabled={availableNetworks.length <= 0}
+            disabled={availableNetworks.length <= 0 || inputsDisabled}
           >
             {availableNetworks.map((network) => (
               <option key={network.ssid} value={network.ssid}>
@@ -325,6 +329,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
               value={data.identity || ''}
               onChange={handleChange('identity')}
               required
+              disabled={inputsDisabled}
             />
           </FormGroup>
         )}
@@ -342,7 +347,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
                 type={showPassword ? "text" : "password"}
                 value={data.passphrase || ''}
                 onChange={handleChange('passphrase')}
-                disabled={!requiresPassword}
+                disabled={!requiresPassword || inputsDisabled}
                 required={requiresPassword}
               />
               {requiresPassword && (
@@ -350,6 +355,7 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
                   type="button"
                   onClick={togglePasswordVisibility}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={inputsDisabled}
                 >
                   {!showPassword ? "⛔" : "👁️" }
                 </TogglePasswordButton>
@@ -361,15 +367,15 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
         <ButtonsContainer>
           <LightBlueButton
             type="submit"
-            disabled={!formValid || availableNetworks.length <= 0}
+            disabled={!formValid || availableNetworks.length <= 0 || inputsDisabled}
           >
-            Connect
+            {isConnecting ? "Connecting..." : "Connect"}
           </LightBlueButton>
           
           <SecondaryButton
             type="button"
             onClick={handleRefreshClick}
-            disabled={isRefreshing || polling || finalizingRefresh}
+            disabled={inputsDisabled}
           >
             {isRefreshing || polling || finalizingRefresh ? "Refreshing..." : "Refresh Networks"}
           </SecondaryButton>
@@ -382,10 +388,9 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
           <DialogContent>
             <DialogTitle>Warning: Network Scan</DialogTitle>
             <DialogText>
-              The service will temporarily go offline to scan for available WiFi networks. 
-              This means the access point will be unavailable for a short period.
-              The entire process may take up to 2 minutes to complete.
-              <br />
+              The service will go offline to re-scan for available WiFi networks. 
+              The access point will be unavailable for up to 2 minutes to complete.
+              <br /><br />
               Do you want to proceed with the network scan?
             </DialogText>
             <DialogButtonsContainer>
@@ -397,14 +402,16 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
       )}
       
       {/* Polling Spinner */}
-      {(polling || finalizingRefresh) && (
+      {(polling || finalizingRefresh || isConnecting) && (
         <SpinnerOverlay>
           <SpinnerContainer>
             <Spinner />
             <SpinnerText>
-              {finalizingRefresh 
-                ? finalizeMessage 
-                : `Scanning for networks... (Attempt ${pollAttempts + 1})`}
+              {isConnecting 
+                ? "Connecting to network... If successful, this site will no longer be available." 
+                : finalizingRefresh 
+                  ? finalizeMessage 
+                  : `Scanning for networks... (Attempt ${pollAttempts + 1})`}
             </SpinnerText>
           </SpinnerContainer>
         </SpinnerOverlay>

@@ -1,6 +1,14 @@
 import styled from 'styled-components';
 import theme from './theme';
 
+interface Theme {
+  colors: {
+    primary: string;
+    background: string;
+    text: string;
+  };
+}
+
 // Layout components
 export const Container = styled.div`
   max-width: 800px;
@@ -9,7 +17,7 @@ export const Container = styled.div`
 `;
 
 export const Header = styled.header`
-  background-color: #333;
+  background-color: ${({ theme }: { theme: Theme }) => theme.colors.text};
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
@@ -37,7 +45,7 @@ export const Heading = styled.h2`
   font-size: 1.5rem;
   text-align: center;
   margin-bottom: 2rem;
-  color: #444;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
 `;
 
 export const Form = styled.form`
@@ -112,7 +120,7 @@ export const Button = styled.button`
 
 export const PrimaryButton = styled(Button)`
   background-color: ${theme.colors.primary || '#a5d8f3'};
-  color: #333;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
   padding: 1rem;
   
   &:hover:not(:disabled) {
@@ -122,7 +130,7 @@ export const PrimaryButton = styled(Button)`
 
 export const SecondaryButton = styled(Button)`
   background-color: #f0f0f0;
-  color: #333;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
   padding: 0.75rem;
   
   &:hover:not(:disabled) {
@@ -168,7 +176,7 @@ export const DialogContent = styled.div`
 export const DialogTitle = styled.h3`
   margin-top: 0;
   margin-bottom: 1rem;
-  color: #333;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
 `;
 
 export const DialogText = styled.p`
@@ -185,7 +193,7 @@ export const DialogButtonsContainer = styled.div`
 
 export const DialogButton = styled.button<DialogButtonProps>`
   background-color: ${(props: DialogButtonProps) => props.primary ? theme.colors.primary || '#a5d8f3' : '#f0f0f0'};
-  color: #333;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
   font-weight: 600;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -234,6 +242,14 @@ export const Spinner = styled.div`
 `;
 
 export const SpinnerText = styled.p`
-  color: #333;
+  color: ${({ theme }: { theme: Theme }) => theme.colors.text};
   font-weight: 500;
+`;
+
+export const BrandText = styled.h2`
+  color: ${({ theme }: { theme: Theme }) => theme.colors.background};
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 1rem 0;
 `; 

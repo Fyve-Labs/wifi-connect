@@ -3,7 +3,10 @@ import { Notifications } from './Notifications';
 import { NetworkInfoForm } from './NetworkInfoForm';
 import type { Network, NetworkInfo } from '../types';
 import Image from 'next/image';
-import { Container, Header, Logo } from '../styles/components';
+import { BrandText, Container, Header, Logo } from '../styles/components';
+
+// Get the portal brand from environment variable
+const portalBrand = process.env.PORTAL_BRAND;
 
 // Mock data used as fallback when the API is not available
 // const mockNetworks: Network[] = [
@@ -126,7 +129,16 @@ export const ConnectContainer: React.FC = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to refresh networks: ${response.statusText}`);
+        // Try to parse error message from response
+        let errorMessage;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || `Failed to refresh networks: ${response.statusText}`;
+        } catch (jsonErr) {
+          errorMessage = `Failed to refresh networks: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -144,8 +156,11 @@ export const ConnectContainer: React.FC = () => {
       console.error('Error refreshing networks:', errorMessage);
       setError(errorMessage);
       
-      // Re-fetch networks as a fallback
-      fetchNetworks();
+      // Only re-fetch networks if the error isn't about being connected
+      if (!errorMessage.includes("Cannot refresh while connected")) {
+        // Re-fetch networks as a fallback
+        fetchNetworks();
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -188,9 +203,13 @@ export const ConnectContainer: React.FC = () => {
   return (
     <>
       <Header>
-        <Logo>
-          <Image src="/static/img/logo.svg" alt="Balena" width={100} height={30} priority />
-        </Logo>
+        {portalBrand ? (
+          <BrandText>{portalBrand}</BrandText>
+        ) : (
+          <Logo>
+            <Image src="/static/img/logo.svg" alt="Balena" width={100} height={30} priority />
+          </Logo>
+        )}
       </Header>
 
       <Container>

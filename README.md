@@ -147,6 +147,7 @@ Variable | Description | Default
 `PORTAL_GATEWAY` | Gateway IP for the access point | `192.168.42.1`
 `PORTAL_DHCP_RANGE` | DHCP range for the access point | `192.168.42.2,192.168.42.254`
 `PORTAL_LISTENING_PORT` | Port for captive portal web server | `80`
+`PORTAL_BRAND` |  Branding to use (in lieu of logo) in top left of banner | (empty)
 `ACTIVITY_TIMEOUT` | Exit if no activity after this time (seconds) | `0` (disabled)
 `RECONNECT_INTERVAL` | Time between reconnection attempts (seconds) | `300` (5 minutes)
 
