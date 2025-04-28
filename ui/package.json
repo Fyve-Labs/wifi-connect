@@ -19,6 +19,7 @@
     "react-dom": "^18.2.0",
     "string-width": "^6.1.0",
     "styled-components": "^6.1.8",
+    "uuid": "^7.0.0",
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {

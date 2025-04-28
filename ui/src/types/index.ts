@@ -7,5 +7,5 @@ export interface NetworkInfo {
 export interface Network {
   ssid: string;
   security: string;
-  signalLevel: number;
+  signal_strength: number;
 } 

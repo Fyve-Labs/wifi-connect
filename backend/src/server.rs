@@ -1,7 +1,8 @@
 use std::error::Error as StdError;
 use std::fmt;
 use std::net::Ipv4Addr;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::time::Duration;
 
 use iron::modifiers::Redirect;
 use iron::prelude::*;
@@ -226,6 +227,13 @@ fn networks(req: &mut Request) -> IronResult<Response> {
 
     let request_state = get_request_state!(req);
 
+    // Check if the NetworkCommandHandler is refreshing
+    let is_refreshing = check_refreshing_state(&request_state.network_tx);
+    if is_refreshing {
+        debug!("Network scan in progress, returning temporarily unavailable");
+        return Ok(Response::with((status::ServiceUnavailable, "{\"error\": \"Network scan in progress, please try again shortly\"}")));
+    }
+
     if let Err(e) = request_state.network_tx.send(NetworkCommand::Activate) {
         return exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandActivate);
     }
@@ -276,6 +284,13 @@ fn refresh(req: &mut Request) -> IronResult<Response> {
 
     let request_state = get_request_state!(req);
 
+    // Check if already refreshing
+    let is_refreshing = check_refreshing_state(&request_state.network_tx);
+    if is_refreshing {
+        debug!("Network scan already in progress");
+        return Ok(Response::with((status::ServiceUnavailable, "{\"error\": \"Network scan already in progress\"}")));
+    }
+
     if let Err(e) = request_state.network_tx.send(NetworkCommand::Refresh) {
         info!("Incoming `refresh` request - sending refresh command {}", e);
         return exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandActivate);
@@ -303,16 +318,33 @@ fn refresh(req: &mut Request) -> IronResult<Response> {
 }
 
 fn heartbeat(req: &mut Request) -> IronResult<Response> {
-    info!("Heartbeat received from frontend");
+    debug!("Heartbeat received from frontend");
     
     let request_state = get_request_state!(req);
     
-    // Send a dummy RetryLastConnection command to trigger activity update
-    // The actual reconnection will be suppressed since frontend is active
     if let Err(e) = request_state.network_tx.send(NetworkCommand::RetryLastConnection) {
-        error!("Sending heartbeat signal failed: {}", e);
-        // Don't exit on heartbeat failure, just log the error
+        debug!("Failed to send heartbeat: {}", e);
+        // Don't exit on heartbeat failures, just return an error
+        return Ok(Response::with((status::InternalServerError, "Failed to process heartbeat")));
     }
     
-    Ok(Response::with((status::Ok, "{\"status\":\"ok\"}")))
+    Ok(Response::with(status::Ok))
+}
+
+// Helper function to check if a refresh is in progress
+fn check_refreshing_state(network_tx: &Sender<NetworkCommand>) -> bool {
+    // This is a temporary channel to get the state
+    let (tx, rx) = channel();
+    
+    // Create a special command to check state
+    if let Err(_) = network_tx.send(NetworkCommand::CheckRefreshingState(tx.clone())) {
+        // If we can't send the command, assume not refreshing for safety
+        return false;
+    }
+    
+    // Wait for a response with a short timeout
+    match rx.recv_timeout(Duration::from_millis(500)) {
+        Ok(is_refreshing) => is_refreshing,
+        Err(_) => false // If timeout, assume not refreshing
+    }
 }

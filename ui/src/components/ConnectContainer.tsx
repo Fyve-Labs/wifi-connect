@@ -1,35 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Notifications } from './Notifications';
 import { NetworkInfoForm } from './NetworkInfoForm';
 import type { Network, NetworkInfo } from '../types';
 import Image from 'next/image';
-
-const Container = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const Header = styled.header`
-  background-color: #333;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-`;
-
-const Logo = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-  display: flex;
-  align-items: center;
-
-  img {
-    height: 30px;
-    margin-right: 8px;
-  }
-`;
+import { Container, Header, Logo } from '../styles/components';
 
 // Mock data used as fallback when the API is not available
 // const mockNetworks: Network[] = [
@@ -46,28 +20,9 @@ export const ConnectContainer: React.FC = () => {
   const [error, setError] = useState('');
   const [availableNetworks, setAvailableNetworks] = useState<Network[]>([]);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cachedNetworksRef = useRef<Network[]>([]);
 
-  useEffect(() => {
-    fetchNetworks();
-    
-    // Start the heartbeat interval when component mounts
-    startHeartbeat();
-    
-    // Clean up the interval when component unmounts
-    return () => {
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
-    };
-  }, []);
-  
-  const startHeartbeat = () => {
-    // Send heartbeat every 60 seconds to indicate frontend is active
-    heartbeatIntervalRef.current = setInterval(() => {
-      sendHeartbeat();
-    }, 60000); // 60 seconds
-  };
-  
+  // Define sendHeartbeat function
   const sendHeartbeat = async () => {
     try {
       await fetch('/heartbeat', {
@@ -83,7 +38,30 @@ export const ConnectContainer: React.FC = () => {
       console.warn('Failed to send heartbeat:', err);
     }
   };
-
+  
+  // Use useCallback to memoize the startHeartbeat function
+  const startHeartbeat = useCallback(() => {
+    // Send heartbeat every 60 seconds to indicate frontend is active
+    heartbeatIntervalRef.current = setInterval(() => {
+      sendHeartbeat();
+    }, 60000); // 60 seconds
+  }, []);
+  
+  // Now use useEffect with the dependency
+  useEffect(() => {
+    fetchNetworks();
+    
+    // Start the heartbeat interval when component mounts
+    startHeartbeat();
+    
+    // Clean up the interval when component unmounts
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+    };
+  }, [startHeartbeat]); // Include startHeartbeat in the dependencies
+  
   const fetchNetworks = async () => {
     setIsFetchingNetworks(true);
     setError('');
@@ -104,14 +82,27 @@ export const ConnectContainer: React.FC = () => {
       }
       
       const data = await response.json();
-      setAvailableNetworks(data);
-    } catch (err) {
-      console.warn('Error fetching networks from API, using mock data:', err);
       
-      // If the API call fails, use mock data after a small delay to simulate loading
-      // setTimeout(() => {
-      //   setAvailableNetworks(mockNetworks);
-      // }, 800);
+      // If we received an empty array but have cached networks, use those instead
+      if (data.length === 0 && cachedNetworksRef.current.length > 0) {
+        console.log('No networks returned, using cached networks');
+        setAvailableNetworks(cachedNetworksRef.current);
+      } else {
+        // Update both the state and the cache
+        setAvailableNetworks(data);
+        cachedNetworksRef.current = data;
+      }
+    } catch (err) {
+      console.warn('Error fetching networks from API:', err);
+      
+      // If we have cached networks, use those as a fallback
+      if (cachedNetworksRef.current.length > 0) {
+        console.log('Fetch failed, using cached networks');
+        setAvailableNetworks(cachedNetworksRef.current);
+      }
+      
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
     } finally {
       setIsFetchingNetworks(false);
     }
@@ -139,11 +130,22 @@ export const ConnectContainer: React.FC = () => {
       }
       
       const data = await response.json();
-      setAvailableNetworks(data);
+      
+      // Only update networks if we actually got some back
+      if (data.length > 0) {
+        setAvailableNetworks(data);
+        cachedNetworksRef.current = data;
+      } else if (cachedNetworksRef.current.length > 0) {
+        // If we got an empty array but have cached networks, stick with the cached ones
+        console.log('No networks returned from refresh, keeping cached networks');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Error refreshing networks:', errorMessage);
       setError(errorMessage);
+      
+      // Re-fetch networks as a fallback
+      fetchNetworks();
     } finally {
       setIsRefreshing(false);
     }

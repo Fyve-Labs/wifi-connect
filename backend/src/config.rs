@@ -26,6 +26,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[allow(dead_code)]
     pub fn new() -> Result<Self, crate::errors::Error> {
         Ok(get_config())
     }

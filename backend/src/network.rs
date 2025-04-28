@@ -29,12 +29,15 @@ pub enum NetworkCommand {
         identity: String,
         passphrase: String,
     },
+    CheckRefreshingState(Sender<bool>),
+    CheckUserActivity(Sender<bool>),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Network {
     ssid: String,
     security: String,
+    signal_strength: i32,
 }
 
 pub enum NetworkCommandResponse {
@@ -61,6 +64,7 @@ struct NetworkCommandHandler {
     last_connection: Option<LastConnection>,
     frontend_active: bool,
     last_activity_time: std::time::Instant,
+    is_refreshing: bool,
 }
 
 impl NetworkCommandHandler {
@@ -97,6 +101,7 @@ impl NetworkCommandHandler {
         let last_connection = None;
         let frontend_active = false;
         let last_activity_time = std::time::Instant::now();
+        let is_refreshing = false;
 
         Ok(NetworkCommandHandler {
             manager,
@@ -111,6 +116,7 @@ impl NetworkCommandHandler {
             last_connection,
             frontend_active,
             last_activity_time,
+            is_refreshing,
         })
     }
 
@@ -173,7 +179,34 @@ impl NetworkCommandHandler {
 
                 debug!("Auto-refresh timer triggered after {} seconds", refresh_interval);
                 
-                // Send the refresh command
+                // First check if there's active user interaction by sending a heartbeat check
+                // We create a temporary channel to get the state
+                let (tx, rx) = channel();
+                
+                // Send a command to check if frontend is active
+                if let Err(err) = network_tx.send(NetworkCommand::CheckUserActivity(tx)) {
+                    error!(
+                        "Sending NetworkCommand::CheckUserActivity failed: {}",
+                        err.to_string()
+                    );
+                    break; // Break the loop if sending fails
+                }
+                
+                // Wait for response with timeout
+                let is_active = match rx.recv_timeout(Duration::from_millis(500)) {
+                    Ok(active) => active,
+                    Err(_) => {
+                        // If we can't get a response, assume no user activity for safety
+                        false
+                    }
+                };
+                
+                if is_active {
+                    debug!("Frontend is active, skipping auto-refresh");
+                    continue;
+                }
+                
+                // Send the refresh command if no active user
                 if let Err(err) = network_tx.send(NetworkCommand::Refresh) {
                     error!(
                         "Sending NetworkCommand::Refresh failed: {}",
@@ -283,6 +316,10 @@ impl NetworkCommandHandler {
                         debug!("Frontend is active, skipping reconnection attempt");
                     }
                 }
+                NetworkCommand::CheckRefreshingState(tx) => {
+                    // Send the current refreshing state through the provided channel
+                    let _ = tx.send(self.is_refreshing);
+                }
                 NetworkCommand::Timeout => {
                     if !self.activated {
                         info!("Timeout reached. Exiting...");
@@ -309,6 +346,11 @@ impl NetworkCommandHandler {
                     if self.connect(&ssid, &identity, &passphrase)? {
                         return Ok(());
                     }
+                }
+                NetworkCommand::CheckUserActivity(tx) => {
+                    // Check if there's been recent user activity
+                    let is_active = !self.check_idle_timeout();
+                    let _ = tx.send(is_active);
                 }
             }
         }
@@ -337,7 +379,10 @@ impl NetworkCommandHandler {
 
     fn activate(&mut self) -> Result<()> {
         // Get the networks directly from access points, matching the original code
-        let networks = get_networks(&self.access_points);
+        let mut networks = get_networks(&self.access_points);
+        
+        // Filter out our own network
+        networks = filter_networks(networks, &self.config.ssid);
 
         self.activated = true;
 
@@ -425,14 +470,66 @@ impl NetworkCommandHandler {
     fn refresh(&mut self) -> Result<()> {
         info!("Refreshing list of WiFi networks...");
         
-        // Directly get access points like in the original code
-        match get_access_points(&self.device) {
-            Ok(access_points) => {
-                self.access_points = access_points;
-                info!("Successfully refreshed list of WiFi networks");
+        // Skip refresh if already in progress
+        if self.is_refreshing {
+            info!("A refresh operation is already in progress, skipping");
+            return Ok(());
+        }
+        
+        // Set refreshing state to true
+        self.is_refreshing = true;
+        
+        // Check if user has been active recently
+        if !self.check_idle_timeout() {
+            info!("Recent user activity detected, proceeding with refresh");
+        }
+        
+        // Store original portal connection
+        let original_portal = self.portal_connection.take();
+        
+        // Define a cleanup function to ensure portal is restored in case of errors
+        let result = (|| {
+            // Take down the AP temporarily
+            if let Some(ref connection) = original_portal {
+                info!("Taking down AP temporarily for scanning...");
+                stop_portal_impl(connection, &self.config)?;
+                // Give some time for the AP to fully stop
+                thread::sleep(Duration::from_secs(2));
+            }
+            
+            // Perform the network scan
+            info!("Scanning for available WiFi networks...");
+            self.access_points = get_access_points(&self.device)?;
+            info!("Successfully scanned for WiFi networks: found {} networks", self.access_points.len());
+            
+            let mut networks = get_networks(&self.access_points);
+            // Filter out our own network
+            networks = filter_networks(networks, &self.config.ssid);
+            Ok(networks)
+        })();
+        
+        // Restore the portal connection
+        if original_portal.is_some() {
+            info!("Restoring AP connection...");
+            match create_portal(&self.device, &self.config) {
+                Ok(connection) => {
+                    self.portal_connection = Some(connection);
+                    info!("AP successfully restored");
+                },
+                Err(e) => {
+                    error!("Failed to restore AP: {}", e);
+                    // Continue anyway, as we need to update refresh state
+                }
+            }
+        }
+        
+        // Reset refreshing state
+        self.is_refreshing = false;
+        
+        // Process the result
+        match result {
+            Ok(networks) => {
                 self.activated = true;
-                
-                let networks = get_networks(&self.access_points);
                 
                 // Send the networks to the server
                 self.server_tx
@@ -561,7 +658,6 @@ fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>> {
         let mut access_points = wifi_device.get_access_points()?;
         info!("get_access_points: Access points: {:?}", access_points);
 
-        /*
         // Filter invalid access points directly as in the original code
         access_points.retain(|ap| ap.ssid().as_str().is_ok());
 
@@ -571,7 +667,7 @@ fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>> {
 
         // Remove access points without SSID (hidden)
         access_points.retain(|ap| !ap.ssid().as_str().unwrap().is_empty());
-        */
+
         if !access_points.is_empty() {
             info!(
                 "Access points: {:?}",
@@ -600,32 +696,6 @@ fn get_networks(access_points: &[AccessPoint]) -> Vec<Network> {
     access_points.iter().map(get_network_info).collect()
 }
 
-// Filter access points that have valid SSIDs and remove duplicates
-// This is kept for API compatibility but we now filter directly in get_access_points
-fn filter_access_points(access_points: Vec<AccessPoint>) -> Vec<AccessPoint> {
-    let mut filtered_aps = Vec::new();
-    let mut seen_ssids = HashSet::new();
-    
-    for ap in access_points {
-        // Check if the access point has a valid SSID that can be converted to a string
-        if let Ok(ssid_str) = ap.ssid().as_str() {
-            // Skip empty SSIDs (hidden networks)
-            if ssid_str.is_empty() {
-                continue;
-            }
-            
-            // Skip if we've already seen this SSID (removes duplicates)
-            if !seen_ssids.insert(ap.ssid.clone()) {
-                continue;
-            }
-            
-            filtered_aps.push(ap);
-        }
-    }
-    
-    filtered_aps
-}
-
 // Filter networks to exclude the current hotspot SSID
 fn filter_networks(networks: Vec<Network>, current_ssid: &str) -> Vec<Network> {
     networks.into_iter()
@@ -637,6 +707,7 @@ fn get_network_info(access_point: &AccessPoint) -> Network {
     Network {
         ssid: access_point.ssid().as_str().unwrap().to_string(),
         security: get_network_security(access_point).to_string(),
+        signal_strength: access_point.strength as i32,
     }
 }
 

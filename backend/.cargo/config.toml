@@ -1,5 +1,4 @@
 [build]
 rustflags = [
-    # Help error_chain work without deprecation warnings
-    "--cfg", "has_error_description_deprecated"
+    # Modern Rust no longer needs special flags for error handling
 ] 
