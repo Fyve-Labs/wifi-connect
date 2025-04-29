@@ -153,7 +153,7 @@ Variable | Description | Default
 
 ### Recent Features
 
-WiFi Connect has recently been updated with the following improvements:
+This container image been updated with the following changes.
 
 - **Simplified Dockerfile**: Simplified [Dockerfile](Dockerfile) that is generic compile using modern docker images.  The prior platform specific [Dockerfile template](Dockerfile.template) is still available in this repo.
 - **Modern UI**: Updated frontend using Next.js
@@ -164,6 +164,7 @@ WiFi Connect has recently been updated with the following improvements:
 - **Network Refresh**: Manually refresh the list of available networks
 - **Frontend Activity Detection**: Smart reconnection attempts only when frontend is idle
 - **Cursor Inclusion**: Added [cursor rules](.cursor/rules/) for easier AI-based code improvements and feature additions.
+- **Restart AP**: Testing or need to restart the AP logon?  Login and run the `wifi-connect` application from a terminal or a second IP.
 
 ***
 

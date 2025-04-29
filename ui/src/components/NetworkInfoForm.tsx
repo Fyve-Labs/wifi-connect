@@ -408,8 +408,8 @@ export const NetworkInfoForm: React.FC<NetworkInfoFormProps> = ({
             <Spinner />
             <SpinnerText>
               {isConnecting 
-                ? "Connecting to network... If successful, this site will no longer be available." 
-                : finalizingRefresh 
+              ? "Connecting... Your device will soon be online. If connection is unsuccessful, the access point will be back up in a few minutes."
+                  : finalizingRefresh 
                   ? finalizeMessage 
                   : `Scanning for networks... (Attempt ${pollAttempts + 1})`}
             </SpinnerText>
