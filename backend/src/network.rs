@@ -8,7 +8,7 @@ use std::env;
 use std::time::Instant;
 
 use network_manager::{
-    AccessPoint, AccessPointCredentials, Connection, Connectivity, Device,
+    AccessPoint, AccessPointCredentials, Connection, ConnectionState, Connectivity, Device,
     DeviceState, DeviceType, NetworkManager, Security, ServiceState,
 };
 
@@ -31,6 +31,7 @@ pub enum NetworkCommand {
     },
     CheckRefreshingState(Sender<bool>),
     CheckUserActivity(Sender<bool>),
+    CheckConnectionStatus(Sender<bool>),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -320,6 +321,16 @@ impl NetworkCommandHandler {
                     // Send the current refreshing state through the provided channel
                     let _ = tx.send(self.is_refreshing);
                 }
+                NetworkCommand::CheckUserActivity(tx) => {
+                    // Check if there's been recent user activity
+                    let is_active = !self.check_idle_timeout();
+                    let _ = tx.send(is_active);
+                }
+                NetworkCommand::CheckConnectionStatus(tx) => {
+                    // Check if we have an established connection (not using the portal)
+                    let has_connection = self.portal_connection.is_none() && self.check_has_connectivity();
+                    let _ = tx.send(has_connection);
+                }
                 NetworkCommand::Timeout => {
                     if !self.activated {
                         info!("Timeout reached. Exiting...");
@@ -346,11 +357,6 @@ impl NetworkCommandHandler {
                     if self.connect(&ssid, &identity, &passphrase)? {
                         return Ok(());
                     }
-                }
-                NetworkCommand::CheckUserActivity(tx) => {
-                    // Check if there's been recent user activity
-                    let is_active = !self.check_idle_timeout();
-                    let _ = tx.send(is_active);
                 }
             }
         }
@@ -394,77 +400,86 @@ impl NetworkCommandHandler {
     }
 
     fn connect(&mut self, ssid: &str, identity: &str, passphrase: &str) -> Result<bool> {
-        let access_point = match find_access_point(&self.access_points, ssid) {
-            Some(access_point) => access_point,
-            None => {
-                warn!("'{}' is not in the access point list", ssid);
-                return Ok(false);
-            }
-        };
-
-        if let Some(ref connection) = self.portal_connection {
-            stop_portal(connection, &self.config)?;
-            self.portal_connection = None;
-        }
-
-        let access_point_credentials = init_access_point_credentials(access_point, identity, passphrase);
-
-        info!("Connecting to access point '{}'...", ssid);
-
+        // 1. Delete existing connections first (like old code)
         delete_existing_connections_to_same_network(&self.manager, ssid);
 
-        let result = match self.device.as_wifi_device().unwrap().connect(access_point, &access_point_credentials) {
-            Ok((connection, state)) => {
-                info!("connect: Connection: {:?}, State: {:?}", connection, state);
-                (connection, state)
-            },
-            Err(e) => {
-                error!("Could not connect to the access point '{}': {}", ssid, e);
-                error!("Reactivating the WiFi connection point...");
+        // 2. Stop portal if active
+        if let Some(ref connection) = self.portal_connection {
+            info!("Stopping portal before connecting to new network...");
+            stop_portal(connection, &self.config)?;
+            self.portal_connection = None;
+            // Add a small delay to ensure the portal is fully stopped
+            thread::sleep(Duration::from_secs(2));
+        }
 
-                self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+        // 3. Refresh access points (like old code)
+        self.access_points = get_access_points(&self.device)?;
+        let mut last_error = None;
 
-                self.activate()?;
+        // 4. Find and connect to access point
+        if let Some(access_point) = find_access_point(&self.access_points, ssid) {
+            let wifi_device = self.device.as_wifi_device().unwrap();
+            let access_point_credentials = init_access_point_credentials(access_point, identity, passphrase);
 
-                return Ok(false);
-            }
-        };
-        
-        let connection = result.0;
+            info!("Connecting to access point '{}'...", ssid);
 
-        match wait_for_connectivity(&self.manager, self.config.activity_timeout) {
-            Ok(has_connectivity) => {
-                if has_connectivity {
-                    info!("Internet connectivity established");
-                } else {
-                    error!("Could not establish Internet connectivity");
-                    connection.delete()?;
+            // Add retry mechanism (from new code)
+            let max_retries = 3;
+            let mut retry_count = 0;
 
-                    self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+            while retry_count < max_retries {
+                match wifi_device.connect(access_point, &access_point_credentials) {
+                    Ok((connection, state)) => {
+                        info!("Successfully initiated connection to '{}', state: {:?}", ssid, state);
+                        
+                        if state == ConnectionState::Activated {
+                            match wait_for_connectivity(&self.manager, 20) {
+                                Ok(has_connectivity) => {
+                                    if has_connectivity {
+                                        info!("Internet connectivity established for '{}'", ssid);
+                                        return Ok(true);
+                                    } else {
+                                        warn!("Cannot establish Internet connectivity for '{}'", ssid);
+                                        connection.delete()?;
+                                        last_error = Some("No internet connectivity".to_string());
+                                    }
+                                }
+                                Err(err) => {
+                                    error!("Getting Internet connectivity failed: {}", err);
+                                    connection.delete()?;
+                                    last_error = Some(err.to_string());
+                                }
+                            }
+                        } else {
+                            warn!("Connection to access point not activated '{}': {:?}", ssid, state);
+                            connection.delete()?;
+                            last_error = Some(format!("Connection not activated: {:?}", state));
+                        }
+                    }
+                    Err(e) => {
+                        error!("Connection attempt {} failed for '{}': {}", retry_count + 1, ssid, e);
+                        last_error = Some(e.to_string());
+                    }
+                }
 
-                    self.activate()?;
-
-                    return Ok(false);
+                retry_count += 1;
+                if retry_count < max_retries {
+                    info!("Retrying connection to '{}' (attempt {}/{})", ssid, retry_count + 1, max_retries);
+                    thread::sleep(Duration::from_secs(2));
                 }
             }
-            Err(err) => {
-                error!(
-                    "Waiting for Internet connectivity failed: {}",
-                    err.to_string()
-                );
-                error!("Reactivating the WiFi connection point...");
+        } else {
+            warn!("'{}' is not in the access point list", ssid);
+        }
 
-                connection.delete()?;
+        // 5. If failed, restore portal
+        error!("All connection attempts failed for '{}'. Last error: {:?}", ssid, last_error);
+        error!("Reactivating the WiFi connection point...");
 
-                self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+        self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+        self.activate()?;
 
-                self.activate()?;
-
-                return Ok(false);
-            }
-        };
-
-        Ok(true)
+        Ok(false)
     }
 
     fn refresh(&mut self) -> Result<()> {
@@ -559,6 +574,16 @@ impl NetworkCommandHandler {
         
         is_idle
     }
+
+    // Helper function to check if we have internet connectivity
+    fn check_has_connectivity(&self) -> bool {
+        match self.manager.get_connectivity() {
+            Ok(connectivity) => {
+                connectivity == Connectivity::Full || connectivity == Connectivity::Limited
+            },
+            Err(_) => false
+        }
+    }
 }
 
 fn init_access_point_credentials(
@@ -567,6 +592,7 @@ fn init_access_point_credentials(
     passphrase: &str,
 ) -> AccessPointCredentials {
     if access_point.security.contains(Security::ENTERPRISE) {
+        info!("Enterprise security detected");
         AccessPointCredentials::Enterprise {
             identity: identity.to_string(),
             passphrase: passphrase.to_string(),
@@ -574,10 +600,12 @@ fn init_access_point_credentials(
     } else if access_point.security.contains(Security::WPA2)
         || access_point.security.contains(Security::WPA)
     {
+        info!("WPA security detected");
         AccessPointCredentials::Wpa {
             passphrase: passphrase.to_string(),
         }
     } else if access_point.security.contains(Security::WEP) {
+        info!("WEP security detected");
         AccessPointCredentials::Wep {
             passphrase: passphrase.to_string(),
         }
@@ -656,7 +684,6 @@ fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>> {
 
         let wifi_device = device.as_wifi_device().unwrap();
         let mut access_points = wifi_device.get_access_points()?;
-        info!("get_access_points: Access points: {:?}", access_points);
 
         // Filter invalid access points directly as in the original code
         access_points.retain(|ap| ap.ssid().as_str().is_ok());

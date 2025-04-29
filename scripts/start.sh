@@ -14,7 +14,7 @@ echo "- ACTIVITY_TIMEOUT: ${ACTIVITY_TIMEOUT:-0} seconds"
 # In Docker, we might not have direct access to the host's D-Bus
 # Only set this if not already set and if the socket exists
 if [ -z "$DBUS_SYSTEM_BUS_ADDRESS" ] && [ -e /host/run/dbus/system_bus_socket ]; then
-    export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
+    export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/host/run/dbus/system_bus_socket"
 fi
 
 # Source network functions

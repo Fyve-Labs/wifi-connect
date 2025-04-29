@@ -290,6 +290,22 @@ fn refresh(req: &mut Request) -> IronResult<Response> {
         debug!("Network scan already in progress");
         return Ok(Response::with((status::ServiceUnavailable, "{\"error\": \"Network scan already in progress\"}")));
     }
+    
+    // Check if we have an established connection
+    let (tx, rx) = channel();
+    if let Err(e) = request_state.network_tx.send(NetworkCommand::CheckConnectionStatus(tx.clone())) {
+        debug!("Failed to check connection status: {}", e);
+    } else {
+        // Wait for response with timeout
+        match rx.recv_timeout(Duration::from_millis(500)) {
+            Ok(true) => {
+                // We have an active connection - don't allow refresh
+                info!("Refresh rejected: active connection exists");
+                return Ok(Response::with((status::BadRequest, "{\"error\": \"Cannot refresh while connected to a network\"}")));
+            },
+            _ => {} // Continue if no connection or error occurred
+        }
+    }
 
     if let Err(e) = request_state.network_tx.send(NetworkCommand::Refresh) {
         info!("Incoming `refresh` request - sending refresh command {}", e);

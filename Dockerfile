@@ -35,12 +35,9 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     dnsmasq \
     wireless-tools \
-    dbus \
-    procps \
     curl \
     iputils-ping \
     host \
-    systemd \
     && rm -rf /var/lib/apt/lists/*
 
 # Create necessary directories
