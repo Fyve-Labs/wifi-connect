@@ -1,0 +1,25 @@
+/*
+  This file contains minimal resets and fallbacks for browsers that don't support styled-components.
+  Most styling should be handled by styled-components in globalStyles.ts
+*/
+
+/* Minimal reset for non-JS environments */
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Print styles - could be expanded as needed */
+@media print {
+  body {
+    background-color: #fff !important; 
+    color: #000 !important;
+  }
+} 

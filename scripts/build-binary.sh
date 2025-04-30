@@ -37,13 +37,35 @@ if ! command -v cargo &> /dev/null; then
     source "$HOME/.cargo/env"
 fi
 
-# Build the binary
-cargo build --release --target=$TARGET || cargo build --release
+# First make a clean cargo build to download all dependencies
+if [ ! -f "Cargo.toml" ]; then
+    echo "Cargo.toml not found. Running from src directory."
+    cd src
+fi
+cargo clean
+cargo build --release
+
+# If target was specified and is different from host, try cross-compiling
+if [ "$TARGET" != "$(rustc -Vv | grep host | cut -d' ' -f2)" ]; then
+    echo "Cross-compiling for $TARGET"
+    rustup target add $TARGET
+    cargo build --release --target=$TARGET
+fi
 
 # Strip the binary to reduce size
 if command -v strip &> /dev/null; then
     echo "Stripping binary..."
-    strip target/release/wifi-connect || strip target/$TARGET/release/wifi-connect
+    if [ -f "target/$TARGET/release/wifi-connect" ]; then
+        strip "target/$TARGET/release/wifi-connect"
+    elif [ -f "target/release/wifi-connect" ]; then
+        strip "target/release/wifi-connect"
+    fi
+fi
+
+# Ensure binary is in the expected location for the Docker build
+if [ -f "target/$TARGET/release/wifi-connect" ]; then
+    mkdir -p target/release/
+    cp "target/$TARGET/release/wifi-connect" "target/release/"
 fi
 
 echo "Build completed successfully!" 

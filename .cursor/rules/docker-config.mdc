@@ -1,0 +1,33 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Docker Configuration
+
+## Multi-stage Build
+The [Dockerfile](mdc:Dockerfile) uses a multi-stage build:
+1. First stage (`rust:slim-bookworm` as builder): 
+   - Builds the Rust backend with [scripts/build-binary.sh](mdc:scripts/build-binary.sh)
+   - Builds the UI with [scripts/build-ui.sh](mdc:scripts/build-ui.sh)
+
+2. Second stage (`debian:bookworm-slim`):
+   - Contains runtime dependencies only
+   - Copies built artifacts from the builder stage
+
+## Runtime Dependencies
+- NetworkManager: For WiFi interface management
+- dnsmasq: For DNS/DHCP in captive portal mode
+- wireless-tools: For WiFi operations
+- dbus: For system bus communication
+- procps, curl, iputils-ping: For network testing and monitoring
+
+## Container Entrypoint
+- Uses [scripts/start.sh](mdc:scripts/start.sh) as the main entrypoint
+- Loads network functions from [scripts/start-network.sh](mdc:scripts/start-network.sh)
+- Includes healthcheck to verify WiFi monitoring is running
+
+## Network Requirements
+- Container needs privileges for network manipulation
+- Should be run with `--privileged --network host` for full functionality
+- Requires access to the dbus socket via volume mount

@@ -1,0 +1,30 @@
+{
+  "project": {
+    "name": "WiFi Connect UI",
+    "description": "A Next.js-based UI for WiFi Connect"
+  },
+  "nextjs": {
+    "version": "14.x",
+    "appDirectory": "ui",
+    "buildCommand": "cd ui && npm run build",
+    "devCommand": "cd ui && npm run dev",
+    "lintCommand": "cd ui && npm run lint"
+  },
+  "typescript": {
+    "enabled": true,
+    "strict": true
+  },
+  "styling": {
+    "primary": "styled-components",
+    "useTransientProps": true
+  },
+  "linting": {
+    "noDeprecations": true,
+    "enforceTypeChecking": true
+  },
+  "codegen": {
+    "componentTemplate": "functional",
+    "defaultExports": true,
+    "fileExtension": ".tsx"
+  }
+} 

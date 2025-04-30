@@ -1,0 +1,4 @@
+[build]
+rustflags = [
+    # Modern Rust no longer needs special flags for error handling
+] 

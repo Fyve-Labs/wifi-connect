@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Runtime Configuration
+
+## Main Scripts
+- [scripts/start.sh](mdc:scripts/start.sh): Main entry point for the container
+  - Monitors WiFi connectivity every minute
+  - Starts/stops the captive portal based on connection status
+  - Sources functions from start-network.sh
+
+- [scripts/start-network.sh](mdc:scripts/start-network.sh): Network utilities
+  - Sets up network services for captive portal operation
+  - Provides functions to verify captive portal functionality
+  - Checks internet connectivity through multiple methods
+
+## Operational Flow
+1. On container start, [start.sh](mdc:scripts/start.sh) checks for WiFi connection
+2. If connected, it monitors for disconnections every minute
+3. If disconnected, it starts wifi-connect in captive portal mode
+4. When a connection is established, the portal is stopped
+5. This cycle continues, providing automatic recovery from disconnections
+
+## Captive Portal Verification
+- The portal operates on IP 192.168.42.1:80
+- Verification uses curl to check server responsiveness
+- Internet connectivity is verified via:
+  - NetworkManager connectivity state
+  - ICMP ping to 8.8.8.8
+  - DNS resolution test
+
+## Environmental Requirements
+- Requires dbus access for NetworkManager communications
+- Needs root/privileged access for network interface manipulation
+- Container must have access to host networking
