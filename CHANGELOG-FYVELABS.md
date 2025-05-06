@@ -4,6 +4,14 @@
 ### Bug Fixes
 
 * **build:** add device type instead of arch for build emulation ([a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
+* **builds:** semantic version bumping and integration for balena deploy ([6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb))
+
+## [1.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.0.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* **build:** add device type instead of arch for build emulation ([a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
 
 # 1.0.0 (2025-05-06)
 
