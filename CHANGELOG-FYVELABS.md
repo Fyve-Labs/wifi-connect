@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.0.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* **build:** fix build script for env token ([4006ab0](https://github.com/Fyve-Labs/wifi-connect/commit/4006ab0811295bf5b507bbbc9b306a9678ea83a3))
+
 # 1.0.0 (2025-05-06)
 
 
