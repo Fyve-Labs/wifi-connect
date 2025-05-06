@@ -1,3 +1,11 @@
+## [1.1.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.0...v1.1.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* **build:** deploy with balena for device type ([43cc3de](https://github.com/Fyve-Labs/wifi-connect/commit/43cc3de5b2a7f981381cc612cda55cce2b90ff53))
+* **semantic-version:** update fix for semantic version ([6dd570a](https://github.com/Fyve-Labs/wifi-connect/commit/6dd570a4a4754ebae7a67b502bb498f79fed5896))
+
 # [1.1.0](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.1.0) (2025-05-06)
 
 
