@@ -1,0 +1,33 @@
+name: wifi-connect
+description: >-
+  This container image is a fork of the wifi-connect project with NextJS and an updated 
+  rust backend for connectivity.  Also includes a persistent monitoring of connection status
+  and a restart of the AP if the connection is lost.
+post-provisioning: >-
+  ## HOW TO 
+  Install as a block, it will detect a connection loss and create a 
+  new Active Portal in a captive DNS portal.  Check out the 
+  [README.md](https://github.com/Fyve-Labs/wifi-connect/blob/main-fyve/README.md) 
+  for more details about custom environment variables for AP and app customization.
+type: sw.block
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/Fyve-Labs/wifi-connect/tree/main-fyve'
+  logo:
+    type: blob.asset
+    data:
+      url: 'https://github.com/Fyve-Labs/wifi-connect/blob/main-fyve/ui/public/static/img/logo.svg'
+data:
+  applicationEnvironmentVariables:
+    - DBUS_SYSTEM_BUS_ADDRESS: unix:path=/host/run/dbus/system_bus_socket
+  defaultDeviceType: generic-x86-64
+  supportedDeviceTypes:
+    - generic-x86-64
+    - generic-aarch64
+    - generic-amd64
+    - raspberry-pi
+    - raspberrypi4-64
+version: 5.0.0
+
