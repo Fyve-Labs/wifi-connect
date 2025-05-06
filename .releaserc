@@ -7,7 +7,7 @@
       "changelogFile": "CHANGELOG-FYVELABS.md"
     }],
     ["@semantic-release/exec", {
-      "prepareCmd": "sed -i '' 's/version: .*/version: ${nextRelease.version}/' balena.yml"
+      "prepareCmd": "sed -i 's@version: .*@version: ${nextRelease.version}@' balena.yml"
     }],
     ["@semantic-release/git", {
       "assets": ["CHANGELOG-FYVELABS.md", "balena.yml"],
