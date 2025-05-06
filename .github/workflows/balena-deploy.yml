@@ -26,9 +26,7 @@ jobs:
 
       - name: Install semantic-release and plugins
         run: |
-          npm install -g semantic-release
-          npm install -g @semantic-release/git
-          npm install -g @semantic-release/changelog
+          npm install -g semantic-release @semantic-release/git @semantic-release/changelog
 
       - name: Run semantic-release
         env:
@@ -36,19 +34,21 @@ jobs:
         run: npx semantic-release --no-ci
 
       - name: Install balena-cli
+        env:
+          BALENA_TOKEN: ${{ secrets.BALENA_TOKEN }}
         run: |
           npm install -g balena-cli
-          balena login --token ${{ secrets.BALENA_API_TOKEN }}
+          balena login --token $BALENA_TOKEN
 
       - name: Build and deploy for multiple architectures
         run: |
           # Define architectures to build for
-          architectures=("aarch64" "raspberrypi4-64" "x86_64")
+          devices=("generic-amd64" "raspberrypi5")
           
-          for arch in "${architectures[@]}"; do
-            echo "Building for $arch..."
-            balena build --arch $arch
+          for dev in "${devices[@]}"; do
+            echo "Building for $dev..."
+            balena build --deviceType $dev
             
-            echo "Deploying for $arch..."
-            balena deploy --arch $arch
+            echo "Deploying for $dev..."
+            balena deploy --deviceType $dev 
           done 
