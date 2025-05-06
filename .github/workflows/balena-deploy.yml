@@ -50,5 +50,5 @@ jobs:
             balena build --deviceType $dev
             
             echo "Deploying for $dev..."
-            balena deploy --deviceType $dev 
+            balena deploy fyve_labs/wifi-connect
           done 
