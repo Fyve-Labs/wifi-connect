@@ -1,59 +1,14 @@
 ## [1.1.3](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.2...v1.1.3) (2025-05-07)
 
-
-### Bug Fixes
-
-* **build-fix:** build fix for naming, logos ([dd9ccae](https://github.com/Fyve-Labs/wifi-connect/commit/dd9ccae176ce664bb553fb826df7239487fe4750))
-
-## [1.1.2](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.1...v1.1.2) (2025-05-07)
-
-
-### Bug Fixes
-
-* **builds:** bump builds for automation ([7a25783](https://github.com/Fyve-Labs/wifi-connect/commit/7a257833b73faf2d1e03462e187a0434071901a8))
-
-## [1.1.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.0...v1.1.1) (2025-05-06)
-
-
-### Bug Fixes
-
-* **build:** deploy with balena for device type ([43cc3de](https://github.com/Fyve-Labs/wifi-connect/commit/43cc3de5b2a7f981381cc612cda55cce2b90ff53))
-* **semantic-version:** update fix for semantic version ([6dd570a](https://github.com/Fyve-Labs/wifi-connect/commit/6dd570a4a4754ebae7a67b502bb498f79fed5896))
-
-# [1.1.0](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.1.0) (2025-05-06)
-
-
-### Bug Fixes
-
-* **build:** add device type instead of arch for build emulation ([a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
-* **builds:** semantic version bumping and integration for balena deploy ([6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb))
-* update sed command for macOS compatibility ([93f68cd](https://github.com/Fyve-Labs/wifi-connect/commit/93f68cd138b13b91aca969343faa93f4a41690f2))
-
-
 ### Features
 
 * use dynamic versioning in semantic-release ([684e27d](https://github.com/Fyve-Labs/wifi-connect/commit/684e27d2c2ad9a8f805320ceb9a620eeae677e7f))
 
-# [1.1.0](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.1.0) (2025-05-06)
-
-
 ### Bug Fixes
+* **build:** fix naming and logos, bump builds for automation, and deploy with balena for device type ([dd9ccae](https://github.com/Fyve-Labs/wifi-connect/commit/dd9ccae176ce664bb553fb826df7239487fe4750), [7a25783](https://github.com/Fyve-Labs/wifi-connect/commit/7a257833b73faf2d1e03462e187a0434071901a8), [43cc3de](https://github.com/Fyve-Labs/wifi-connect/commit/43cc3de5b2a7f981381cc612cda55cce2b90ff53), [6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb))
+* **semantic-version:** update fix for semantic version and macOS compatibility ([6dd570a](https://github.com/Fyve-Labs/wifi-connect/commit/6dd570a4a4754ebae7a67b502bb498f79fed5896), [93f68cd](https://github.com/Fyve-Labs/wifi-connect/commit/93f68cd138b13b91aca969343faa93f4a41690f2))
+* **builds:** semantic version bumping and integration for balena deploy, add device type instead of arch for build emulation ([6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb), [a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
 
-* **build:** add device type instead of arch for build emulation ([a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
-* **builds:** semantic version bumping and integration for balena deploy ([6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb))
-
-
-### Features
-
-* use dynamic versioning in semantic-release ([684e27d](https://github.com/Fyve-Labs/wifi-connect/commit/684e27d2c2ad9a8f805320ceb9a620eeae677e7f))
-
-## [1.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.0.1) (2025-05-06)
-
-
-### Bug Fixes
-
-* **build:** add device type instead of arch for build emulation ([a1240d9](https://github.com/Fyve-Labs/wifi-connect/commit/a1240d918e7bae656c6a165e67a924764ef1479d))
-* **builds:** semantic version bumping and integration for balena deploy ([6a5d1c4](https://github.com/Fyve-Labs/wifi-connect/commit/6a5d1c4c9f1cf13289d400995dd579116bc236cb))
 
 ## [1.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.0.0...v1.0.1) (2025-05-06)
 

@@ -40,16 +40,25 @@ jobs:
           npm install -g balena-cli
           balena login --token $BALENA_TOKEN
 
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
       - name: Build and deploy for multiple architectures
         run: |
-          # Define architectures to build for
+          # build on our known platforms (balena handles dev/arch)
+          # fast/automated way to build and deploy
+          # balena push fyve_labs/wifi-connect-amd64
+          # balena push fyve_labs/wifi-connect-aarch64
+
+          # Define architectures to build for below.  Note, you need emulators.
           # https://docs.balena.io/reference/base-images/devicetypes/
-          devices=("amd64" "aarch64")
-          
-          for dev in "${devices[@]}"; do
-            # echo "Building for $dev..."
-            # balena push --deviceType $dev
-            
-            echo "Deploying for $dev..."
-            balena push fyve_labs/wifi-connect-$dev
-          done 
+          balena build --deviceType generic-amd64 --arch amd64
+          balena deploy fyve_labs/wifi-connect-amd64
+          balena build --deviceType aarch64 --arch aarch64 
+          balena deploy fyve_labs/wifi-connect-aarch64
+
