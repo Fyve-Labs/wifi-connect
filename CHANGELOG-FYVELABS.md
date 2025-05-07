@@ -1,3 +1,11 @@
+## [5.0.2](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.1...v5.0.2) (2025-05-07)
+
+
+### Bug Fixes
+
+* **emulators:** don't sweat the slow build on mismatched platforms, for now build on hardware through balena ([888036b](https://github.com/Fyve-Labs/wifi-connect/commit/888036b58de92d3538ad99f48102dfdc54409758))
+* **pr-build:** refactor for test build on pull requests, semantic bump on merge/push ([639702f](https://github.com/Fyve-Labs/wifi-connect/commit/639702f78863e83071f928a82285c5613624aaa0))
+
 ## [5.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.0...v5.0.1) (2025-05-07)
 
 

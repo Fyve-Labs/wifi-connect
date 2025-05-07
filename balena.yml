@@ -26,4 +26,4 @@ data:
   supportedDeviceTypes:
     - generic-amd64
     - raspberrypi5
-version: 5.0.1
+version: 5.0.2
