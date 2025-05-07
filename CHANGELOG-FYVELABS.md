@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.0...v5.0.1) (2025-05-07)
+
+
+### Bug Fixes
+
+* **qemu-builds:** attempt to move to emulated build on docker ([9603bfd](https://github.com/Fyve-Labs/wifi-connect/commit/9603bfd41fed289386a35e3bf002b3d35f2c4355))
+
 ## [1.1.3](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.2...v1.1.3) (2025-05-07)
 
 ### Features
