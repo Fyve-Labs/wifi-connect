@@ -14,19 +14,19 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy project files and scripts
-COPY scripts/build-ui.sh ./scripts/build-ui.sh
-COPY ui ./ui
-
-# Build UI
-RUN chmod +x ./scripts/build-ui.sh && ./scripts/build-ui.sh
-
 # Copy backend files
 COPY backend ./backend
 COPY scripts/build-binary.sh ./scripts/build-binary.sh
 
 # Build WiFi Connect binary
 RUN cd backend && chmod +x ../scripts/build-binary.sh && ../scripts/build-binary.sh
+
+# Copy project files and scripts
+COPY scripts/build-ui.sh ./scripts/build-ui.sh
+COPY ui ./ui
+
+# Build UI
+RUN chmod +x ./scripts/build-ui.sh && ./scripts/build-ui.sh
 
 # Create the final lightweight image
 FROM debian:bookworm-slim
