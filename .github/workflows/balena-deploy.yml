@@ -1,13 +1,15 @@
-name: Fyve Labs Balena Deploy
+name: Balena Deploy Reusable Workflow
 
 on:
-  push:
-    branches:
-      - main-fyve
-  pull_request:
-    types: [closed]
-    branches:
-      - main-fyve
+  workflow_call:
+    inputs:
+      architectures:
+        required: true
+        type: string
+        description: 'Comma-separated list of architectures to build for'
+    secrets:
+      BALENA_TOKEN:
+        required: true
 
 jobs:
   deploy:
@@ -16,22 +18,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install semantic-release and plugins
-        run: |
-          npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/exec
-
-      - name: Run semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release --no-ci
 
       - name: Install balena-cli
         env:
@@ -43,22 +29,35 @@ jobs:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
-      # https://github.com/docker/setup-buildx-action
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
 
       - name: Build and deploy for multiple architectures
         run: |
-          # build on our known platforms (balena handles dev/arch)
-          # fast/automated way to build and deploy
-          # balena push fyve_labs/wifi-connect-amd64
-          # balena push fyve_labs/wifi-connect-aarch64
-
           # Define architectures to build for below.  Note, you need emulators.
           # https://docs.balena.io/reference/base-images/devicetypes/
-          balena build --deviceType generic-amd64 --arch amd64
-          balena deploy fyve_labs/wifi-connect-amd64
-          balena build --deviceType aarch64 --arch aarch64 
-          balena deploy fyve_labs/wifi-connect-aarch64
 
+          # Convert comma-separated string to array
+          IFS=',' read -ra ARCHS <<< "${{ inputs.architectures }}"
+          for arch in "${ARCHS[@]}"; do
+            case $arch in
+              "aarch64")
+                # balena push fyve_labs/wifi-connect-aarch64
+                echo "Building for aarch64..."
+                balena build --deviceType raspberrypi5 --arch aarch64
+                balena deploy fyve_labs/wifi-connect-aarch64
+                ;;
+              "amd64")
+                # balena push fyve_labs/wifi-connect-amd64
+                echo "Building for amd64..."
+                balena build --deviceType generic-amd64 --arch amd64
+                balena deploy fyve_labs/wifi-connect-amd64
+                ;;
+              *)
+                echo "Unknown architecture: $arch"
+                exit 1
+                ;;
+            esac
+          done
