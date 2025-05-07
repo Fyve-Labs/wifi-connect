@@ -1,0 +1,20 @@
+name: Main Branch Push Actions
+
+on:
+  push:
+    branches:
+      - main-fyve
+
+jobs:
+  semantic-release:
+    name: Semantic Release
+    uses: ./.github/workflows/semantic-release.yml
+
+  build-and-deploy:
+    name: Build and Deploy
+    needs: semantic-release
+    uses: ./.github/workflows/balena-deploy.yml
+    with:
+      architectures: "aarch64,amd64"
+    secrets:
+      BALENA_TOKEN: ${{ secrets.BALENA_TOKEN }} 
