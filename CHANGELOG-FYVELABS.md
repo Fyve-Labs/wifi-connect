@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.2...v1.1.3) (2025-05-07)
+
+
+### Bug Fixes
+
+* **build-fix:** build fix for naming, logos ([dd9ccae](https://github.com/Fyve-Labs/wifi-connect/commit/dd9ccae176ce664bb553fb826df7239487fe4750))
+
 ## [1.1.2](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.1...v1.1.2) (2025-05-07)
 
 
