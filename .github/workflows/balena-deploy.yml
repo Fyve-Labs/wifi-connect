@@ -43,7 +43,8 @@ jobs:
       - name: Build and deploy for multiple architectures
         run: |
           # Define architectures to build for
-          devices=("amd64" "rpi5")
+          # https://docs.balena.io/reference/base-images/devicetypes/
+          devices=("amd64" "aarch64")
           
           for dev in "${devices[@]}"; do
             # echo "Building for $dev..."
