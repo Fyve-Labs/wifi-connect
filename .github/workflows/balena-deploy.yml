@@ -43,12 +43,12 @@ jobs:
       - name: Build and deploy for multiple architectures
         run: |
           # Define architectures to build for
-          devices=("generic-amd64" "raspberrypi5")
+          devices=("amd64" "rpi5")
           
           for dev in "${devices[@]}"; do
-            echo "Building for $dev..."
-            balena build --deviceType $dev
+            # echo "Building for $dev..."
+            # balena push --deviceType $dev
             
             echo "Deploying for $dev..."
-            balena deploy fyve_labs/wifi-connect
+            balena push fyve_labs/wifi-connect-$dev
           done 

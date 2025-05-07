@@ -18,7 +18,7 @@ assets:
   logo:
     type: blob.asset
     data:
-      url: 'https://github.com/Fyve-Labs/wifi-connect/blob/main-fyve/ui/public/static/img/logo.svg'
+      url: 'https://raw.githubusercontent.com/Fyve-Labs/wifi-connect/main-fyve/ui/public/static/img/wifi-fyve.png'
 data:
   applicationEnvironmentVariables:
     - DBUS_SYSTEM_BUS_ADDRESS: unix:path=/host/run/dbus/system_bus_socket
