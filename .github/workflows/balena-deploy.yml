@@ -44,16 +44,18 @@ jobs:
           for arch in "${ARCHS[@]}"; do
             case $arch in
               "aarch64")
-                # balena push fyve_labs/wifi-connect-aarch64
                 echo "Building for aarch64..."
-                balena build --deviceType raspberrypi5 --arch aarch64
-                balena deploy fyve_labs/wifi-connect-aarch64
+                balena push fyve_labs/wifi-connect-aarch64
+                # this method uses emulators instead of company devices, but much slower, needs tweaks
+                # balena build --deviceType raspberrypi5 --arch aarch64
+                # balena deploy fyve_labs/wifi-connect-aarch64
                 ;;
               "amd64")
-                # balena push fyve_labs/wifi-connect-amd64
                 echo "Building for amd64..."
-                balena build --deviceType generic-amd64 --arch amd64
-                balena deploy fyve_labs/wifi-connect-amd64
+                balena push fyve_labs/wifi-connect-amd64
+                # this method uses emulators instead of company devices, but much slower, needs tweaks
+                # balena build --deviceType generic-amd64 --arch amd64
+                # balena deploy fyve_labs/wifi-connect-amd64
                 ;;
               *)
                 echo "Unknown architecture: $arch"
