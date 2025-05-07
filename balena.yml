@@ -29,5 +29,5 @@ data:
     - generic-amd64
     - raspberry-pi
     - raspberrypi4-64
-version: 1.1.1
+version: 1.1.2
 

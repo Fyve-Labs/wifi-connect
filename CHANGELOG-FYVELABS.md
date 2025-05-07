@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.1...v1.1.2) (2025-05-07)
+
+
+### Bug Fixes
+
+* **builds:** bump builds for automation ([7a25783](https://github.com/Fyve-Labs/wifi-connect/commit/7a257833b73faf2d1e03462e187a0434071901a8))
+
 ## [1.1.1](https://github.com/Fyve-Labs/wifi-connect/compare/v1.1.0...v1.1.1) (2025-05-06)
 
 
