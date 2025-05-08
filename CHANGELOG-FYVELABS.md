@@ -1,3 +1,10 @@
+## [5.0.3](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.2...v5.0.3) (2025-05-08)
+
+
+### Bug Fixes
+
+* **add-env-setting:** add new env setting for connectivity ping and check interval ([7aa7eaa](https://github.com/Fyve-Labs/wifi-connect/commit/7aa7eaadab9ad3c926f871d3a4e0e641c2597f6f))
+
 ## [5.0.2](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.1...v5.0.2) (2025-05-07)
 
 
