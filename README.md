@@ -150,6 +150,8 @@ Variable | Description | Default
 `PORTAL_BRAND` |  Branding to use (in lieu of logo) in top left of banner | (empty)
 `ACTIVITY_TIMEOUT` | Exit if no activity after this time (seconds) | `0` (disabled)
 `RECONNECT_INTERVAL` | Time between reconnection attempts (seconds) | `300` (5 minutes)
+`CONNECTIVITY_PING_ADDRESS` | IP address to ping when checking connectivity | `8.8.8.8` 
+`CONNECTIVITY_CHECK_INTERVAL` | Frequency to check WiFi connection status (seconds) | `300` (5 minutes)
 
 ### Recent Features
 

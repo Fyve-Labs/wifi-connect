@@ -83,8 +83,9 @@ check_internet() {
     # Use multiple methods to verify connection
     
     # Method 1: Try to reach a reliable internet host with ping
-    if ping -c 1 -W 5 8.8.8.8 >/dev/null 2>&1; then
-        echo "Successfully pinged 8.8.8.8"
+    local PING_ADDRESS=${CONNECTIVITY_PING_ADDRESS:-8.8.8.8}
+    if ping -c 1 -W 5 $PING_ADDRESS >/dev/null 2>&1; then
+        echo "Successfully pinged $PING_ADDRESS"
         return 0
     fi
     

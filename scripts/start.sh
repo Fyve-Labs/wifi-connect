@@ -10,6 +10,8 @@ echo "Using environment configuration:"
 echo "- PORTAL_SSID: ${PORTAL_SSID:-WiFi Connect}"
 echo "- RECONNECT_INTERVAL: ${RECONNECT_INTERVAL:-300} seconds"
 echo "- ACTIVITY_TIMEOUT: ${ACTIVITY_TIMEOUT:-0} seconds"
+echo "- CONNECTIVITY_PING_ADDRESS: ${CONNECTIVITY_PING_ADDRESS:-8.8.8.8}"
+echo "- CONNECTIVITY_CHECK_INTERVAL: ${CONNECTIVITY_CHECK_INTERVAL:-300} seconds"
 
 # In Docker, we might not have direct access to the host's D-Bus
 # Only set this if not already set and if the socket exists
@@ -103,7 +105,8 @@ echo "WiFi Connect completed."
 
 # Keep the container running
 while true; do
-    sleep 60
+    local CHECK_INTERVAL=${CONNECTIVITY_CHECK_INTERVAL:-300}
+    sleep $CHECK_INTERVAL
     if ! check_wifi_connection; then
         echo "WiFi connection lost. Restarting WiFi Connect."
         start_wifi_connect
