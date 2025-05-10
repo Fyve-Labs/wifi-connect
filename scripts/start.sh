@@ -104,8 +104,8 @@ fi
 echo "WiFi Connect completed."
 
 # Keep the container running
+CHECK_INTERVAL=${CONNECTIVITY_CHECK_INTERVAL:-300}
 while true; do
-    local CHECK_INTERVAL=${CONNECTIVITY_CHECK_INTERVAL:-300}
     sleep $CHECK_INTERVAL
     if ! check_wifi_connection; then
         echo "WiFi connection lost. Restarting WiFi Connect."
