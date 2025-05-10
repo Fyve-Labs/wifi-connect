@@ -1,3 +1,10 @@
+## [5.0.4](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.3...v5.0.4) (2025-05-10)
+
+
+### Bug Fixes
+
+* **check-data:** update check interval variable for script ([04a016b](https://github.com/Fyve-Labs/wifi-connect/commit/04a016b6e69f9dbb1534ea2b6084874eb9c74acf))
+
 ## [5.0.3](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.2...v5.0.3) (2025-05-08)
 
 
