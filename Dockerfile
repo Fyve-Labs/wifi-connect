@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     iputils-ping \
     host \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Create necessary directories
