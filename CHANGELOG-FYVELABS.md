@@ -1,3 +1,10 @@
+## [5.0.5](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.4...v5.0.5) (2025-06-04)
+
+
+### Bug Fixes
+
+* **fix-wifi-conenct:** fixing connect timeout issues to restart connection if failed ([7002f2d](https://github.com/Fyve-Labs/wifi-connect/commit/7002f2d5e7d4c3c079df383e7548a13707aebd4e))
+
 ## [5.0.4](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.3...v5.0.4) (2025-05-10)
 
 
