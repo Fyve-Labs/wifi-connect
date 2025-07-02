@@ -27,6 +27,11 @@ if [ -f ./verify-ui-integration.sh ]; then
     source ./verify-ui-integration.sh
 fi
 
+# Apply forced WiFi credentials if provided
+if [ -f ./apply-ap-creds.sh ]; then
+    source ./apply-ap-creds.sh
+fi
+
 # Check if the UI directory exists and has content
 if [ ! -d "./ui" ] || [ -z "$(ls -A ./ui 2>/dev/null)" ]; then
     echo "ERROR: UI directory is missing or empty. WiFi Connect cannot start."
