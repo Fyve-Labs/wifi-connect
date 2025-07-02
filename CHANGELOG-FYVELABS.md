@@ -1,3 +1,10 @@
+## [5.0.6](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.5...v5.0.6) (2025-07-02)
+
+
+### Bug Fixes
+
+* **add-ENV-ap-set:** for forced AP init on device, env settings ([3072bcf](https://github.com/Fyve-Labs/wifi-connect/commit/3072bcfae3c906a41eb55e24c66857d054918b4f))
+
 ## [5.0.5](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.4...v5.0.5) (2025-06-04)
 
 
