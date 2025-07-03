@@ -1,3 +1,10 @@
+## [5.0.7](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.6...v5.0.7) (2025-07-03)
+
+
+### Bug Fixes
+
+* **log-to-volume:** fix and log to volume ([fd12463](https://github.com/Fyve-Labs/wifi-connect/commit/fd12463bdedb4a286b76bcaebdfb9dc29c9c03d0))
+
 ## [5.0.6](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.5...v5.0.6) (2025-07-02)
 
 
