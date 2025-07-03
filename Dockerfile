@@ -51,11 +51,14 @@ COPY --from=builder /usr/src/app/ui/out /usr/src/app/ui/
 COPY scripts/start-network.sh scripts/start.sh scripts/verify-ui-integration.sh scripts/apply-ap-creds.sh /usr/src/app/
 
 # Make scripts executable
-RUN chmod +x /usr/src/app/start.sh /usr/src/app/start-network.sh /usr/src/app/verify-ui-integration.sh /usr/src/app/apply-ap-creds.sh
+RUN chmod +x /usr/src/app/*.sh 
+
+# Create logs directory and set permissions
+RUN mkdir -p /usr/src/app/logs && chmod 755 /usr/src/app/logs
 
 # Healthcheck to verify WiFi monitoring is working
 HEALTHCHECK --interval=2m --timeout=30s \
   CMD pgrep -f "bash.*start.sh" || exit 1
 
-# Command to run when container starts
-CMD ["bash", "start.sh"] 
+# Command to run when container starts - redirect output to log file
+CMD ["bash", "-c", "bash start.sh | tee -a /usr/src/app/logs/wifi-connect.log"] 
