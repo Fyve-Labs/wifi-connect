@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     host \
     net-tools \
+    network-manager \
     && rm -rf /var/lib/apt/lists/*
 
 # Create necessary directories
