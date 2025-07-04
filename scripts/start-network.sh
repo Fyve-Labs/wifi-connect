@@ -136,7 +136,7 @@ restore_last_connection() {
         # Get the last used connection that's not the access point
         local LAST_CONNECTION=$(nmcli -t -f NAME,TYPE,TIMESTAMP-REAL connection show | \
             grep "802-11-wireless" | \
-            grep -v "WiFi Connect" | \
+            grep -v "$PORTAL_SSID" | \
             sort -t: -k3 -n | \
             tail -1 | \
             cut -d: -f1)
