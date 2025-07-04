@@ -1,3 +1,10 @@
+## [5.0.8](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.7...v5.0.8) (2025-07-04)
+
+
+### Bug Fixes
+
+* **fixes-for-nmcli:** fixes for cli network op tool ([7d73a10](https://github.com/Fyve-Labs/wifi-connect/commit/7d73a1029ab897bbda6ae5f32ce957d390777b37))
+
 ## [5.0.7](https://github.com/Fyve-Labs/wifi-connect/compare/v5.0.6...v5.0.7) (2025-07-03)
 
 
